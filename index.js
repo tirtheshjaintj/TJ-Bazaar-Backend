@@ -5,15 +5,21 @@ const test=require("./routes/test.route");
 const user=require("./routes/user.route");
 const seller=require("./routes/seller.route");
 const product=require("./routes/product.route");
+const order=require("./routes/order.route");
 const connectDB = require('./helpers/db.helper');
-connectDB();
-
+const cors=require('cors');
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended:true}))
 
+//DB Connection
+connectDB();
+
+//All Routers
 app.use("/",test);
 app.use("/api/user",user);
 app.use("/api/seller",seller);
 app.use("/api/product",product);
+app.use("/api/order",order);
 
 app.listen(process.env.PORT,()=>console.log(`Server Started at ${process.env.PORT}`));

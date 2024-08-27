@@ -9,7 +9,7 @@ const paymentSchema = new Schema({
     required: [true, 'Order ID is required'],
     ref: 'Order'
   },
-  razorpay_id: {
+  razorpay_order_id: {
     type: String,
     required: [true, 'Razorpay ID is required'],
     unique: true
@@ -61,4 +61,4 @@ paymentSchema.pre('save', async function (next) {
 // Compile the model
 const Payment = model('Payment', paymentSchema);
 
-export default Payment;
+module.exports= Payment;
