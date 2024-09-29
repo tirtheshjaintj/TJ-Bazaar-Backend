@@ -13,7 +13,7 @@ name:{
       message: props => `${props.value} is not a valid name! Only letters and spaces are allowed.`
     }
 }
-});
+},{timestamps:true});
 
 const category=mongoose.model('category',categorySchema);
 module.exports=category;

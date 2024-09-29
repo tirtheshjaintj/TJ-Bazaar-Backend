@@ -1,8 +1,5 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');  // For generating random OTP
-const nodemailer = require('nodemailer');
-const sendMail = require('../helpers/mail.helper');
 
 // Define the schema
 const userSchema = new mongoose.Schema({
@@ -71,7 +68,7 @@ const userSchema = new mongoose.Schema({
     default: false,
     required: true
   }
-});
+},{timestamps:true});
 
 // Middleware to hash password and generate OTP before saving
 userSchema.pre('save', async function (next) {

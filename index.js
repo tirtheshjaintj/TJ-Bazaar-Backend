@@ -8,9 +8,13 @@ const product=require("./routes/product.route");
 const order=require("./routes/order.route");
 const connectDB = require('./helpers/db.helper');
 const cors=require('cors');
-app.use(cors());
+const cookieParser = require('cookie-parser');
+
+//MiddleWaress
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
-app.use(express.urlencoded({ extended:true}))
+app.use(cookieParser());
+app.use(express.urlencoded({ extended:true}));
 
 //DB Connection
 connectDB();

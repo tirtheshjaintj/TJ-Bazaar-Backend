@@ -44,7 +44,7 @@ cartSchema.pre('save', async function (next) {
     } catch (error) {
         next(error);
     }
-});
+},{timestamps:true});
 
 const cart = mongoose.model('cart', cartSchema);
 module.exports = cart;

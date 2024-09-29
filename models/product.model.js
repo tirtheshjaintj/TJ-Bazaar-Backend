@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema({
   category_id: {
     type: mongoose.Schema.Types.ObjectId,
     required: [true, 'Category is required'],
-    ref: 'Category'
+    ref: 'category'
   },
   seller_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -31,9 +31,10 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Product Description is required'],
     validate: {
       validator: function (v) {
-        return /^[a-zA-Z0-9\s]{10,}$/.test(v);
+        // This regex allows letters, numbers, spaces, punctuation, and special characters.
+        return /^.{100,1500}$/.test(v);
       },
-      message: props => `${props.value} is not a valid product name! It should be 3 to 100 characters long and may include letters, numbers, and spaces.`
+      message: props => `${props.value} is not a valid product description! It should be 100 to 1500 characters long and may include letters, numbers, spaces, punctuation, and special characters.`
     }
   },
   tags:{
@@ -65,7 +66,7 @@ const productSchema = new mongoose.Schema({
     ]
   },
 
-});
+},{timestamps: true});
 
 // Pre-save hook to validate category and seller references
 productSchema.pre('save', async function (next) {
