@@ -1,10 +1,13 @@
 const { validationResult } = require('express-validator');
 const Seller = require('../models/seller.model');
 const { setUser } = require('../helpers/jwt.helper');
+const asyncHandler = require('express-async-handler');
 const sendMail = require('../helpers/mail.helper');
 const crypto = require('crypto');
 const Product = require('../models/product.model');
 const Media = require('../models/media.model');
+const Order = require('../models/order.model');
+const Payment = require('../models/payment.model');
 
 // Signup
 const signup = async (req, res) => {
@@ -102,7 +105,7 @@ const updateSeller = async (req, res) => {
     const { name, phone_number, address, gst_number } = req.body;
 
     try {
-        const sellerId = req.user.id;  // Assuming user ID is extracted from a middleware
+        const sellerId = req.user.id;  // Assuming seller ID is extracted from a middleware
         const seller = await Seller.findByIdAndUpdate(
             sellerId,
             { name, phone_number, address, gst_number },
@@ -148,6 +151,8 @@ const verifyOtp = async (req, res) => {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
 };
+
+
 
 // Resend OTP
 const resendOtp = async (req, res) => {
@@ -215,6 +220,67 @@ const getProducts = async (req, res) => {
     }
 };
 
+const getOrders = asyncHandler(async (req, res) => {
+    const seller_id = req.user.id;
+    try {
+        // Fetch all products for the seller
+        const products = await Product.find({ seller_id }).select('_id');
+        const productIds = products.map(product => product._id);
+
+        if (productIds.length === 0) {
+            return res.status(404).json({ status: false, message: 'No products found for this seller' });
+        }
+
+        // Fetch orders related to any of the seller's products
+        const orders = await Order.find({ product_id: { $in: productIds },order_status:true})
+            .populate({
+                path: 'product_id',
+                select: 'name price' // Only get required product fields
+            })
+            .populate({
+                path: 'user_id',
+                select: 'name address phone_number' // Only get user name and address
+            });
+
+        if (orders.length === 0) {
+            return res.status(404).json({ status: false, message: 'No orders found for this seller\'s products' });
+        }
+
+        // Map through orders to include required details
+        const orderDetails = await Promise.all(orders.map(async (order) => {
+            const product = order.product_id;
+            const payment = await Payment.findOne({ order_id: order._id }); // Get payment details for the order
+            const media = await Media.findOne({ product_id: product._id });
+            const image = media?.images[0]; // Get first image from media
+
+            return {
+                order_id: order._id,
+                quantity: order.quantity,
+                createdAt: order.createdAt,
+                order_status: order.order_status,
+                amount: payment ? payment.amount : 0,
+                product: {
+                    id: product._id,
+                    name: product.name,
+                    price: payment.amount / order.quantity,
+                    image: image || null // Default to null if no image found
+                },
+                user: {
+                    id: order.user_id._id,
+                    name: order.user_id.name,
+                    address: order.user_id.address,
+                    phone_number: order.user_id.phone_number
+                }
+            };
+        }));
+
+        res.status(200).json({ status: true, message: 'Orders fetched successfully', data: orderDetails });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+});
+
+
 
 const getSeller = async (req, res) => {
     try {
@@ -239,5 +305,6 @@ module.exports = {
     verifyOtp,
     resendOtp,
     getSeller,
-    getProducts
+    getProducts,
+    getOrders
 };

@@ -82,6 +82,7 @@ const login = async (req, res) => {
             
         res.status(200).json({ status: true, message: 'Login successful!', token });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
 };
@@ -95,7 +96,7 @@ const updateUser = async (req, res) => {
     const { name, email, phone_number, address } = req.body;
 
     try {
-        const userId = req.user._id; // Assuming user ID is extracted from a middleware
+        const userId = req.user.id; // Assuming user ID is extracted from a middleware
 
         const user = await User.findByIdAndUpdate(
             userId,
@@ -171,14 +172,15 @@ const resendOtp = async (req, res) => {
 const getUser =async (req, res) => {
  try {
     const userId = req.user.id;
-    console.log(userId);
     const user = await User.findById(userId).select("-password -otp -__v -verified");
     if(!user) return res.status(500).json({ status: false, message: 'User Not Found' });
-    return res.status(200).json({ status:true, user });
+    return res.status(200).json({ status:true,message:"User Fetched", user });
  } catch (error) {
     res.status(500).json({ status: false, message: 'Internal Server Error' });
  }
 };
+
+
 
 module.exports = {
     signup,

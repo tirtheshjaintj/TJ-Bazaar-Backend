@@ -7,7 +7,8 @@ const {
     verifyOtp,
     resendOtp,
     getSeller,
-    getProducts
+    getProducts,
+    getOrders
 } = require('../controllers/seller.controller');
 
 const { restrictLogIn } = require('../middlewares/authCheck');
@@ -15,6 +16,10 @@ const router = express.Router();
 
 //Seller
 router.get('/getSeller',restrictLogIn, getSeller);
+
+//Get Orders
+
+router.get('/getOrders',restrictLogIn, getOrders);
 
 //Get Products Listed By User
 router.get('/getProducts',

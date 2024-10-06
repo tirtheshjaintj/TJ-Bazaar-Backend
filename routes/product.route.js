@@ -14,6 +14,7 @@ router.get('/:id',
 
 router.get("/get/products",getProducts);
 
+
 router.post("/search",
 check('keyword').not().isEmpty().withMessage('Invalid keyword')
 ,searchProducts);

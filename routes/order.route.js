@@ -1,13 +1,13 @@
 const { Router } = require('express');
-const { check, validationResult } = require('express-validator');
+const { check, validationResult} = require('express-validator');
 const router = Router();
-
 // Import controllers
-const { createOrderController, verifyOrderController } = require('../controllers/order.controller.js');
+const { createOrderController, verifyOrderController,getOrders } = require('../controllers/order.controller.js');
+const { restrictLogIn } = require('../middlewares/authCheck.js');
 
-// Validation middleware for creating an order
+// Validation middleware for creating an order  
 const createOrderValidations = [
-    check('productId').isMongoId().withMessage('Invalid Product ID'),
+    check('product_id').isMongoId().withMessage('Invalid Product ID'),
     check('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
 ];
 
@@ -22,15 +22,17 @@ const verifyOrderValidations = [
 const validate = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, errors: errors.array() });
+        return res.status(400).json({ status: false, message: errors.array()[0].msg });
     }
     next();
 };
 
 // Route to create an order with validation
-router.post('/create-order', createOrderValidations, validate, createOrderController);
+router.post('/create_order',restrictLogIn, createOrderValidations, validate, createOrderController);
 
 // Route to verify an order with validation
-router.post('/verify-order', verifyOrderValidations, validate, verifyOrderController);
+router.post('/verify_order',restrictLogIn, verifyOrderValidations, validate, verifyOrderController);
+
+router.get('/get_orders',restrictLogIn,getOrders);
 
 module.exports = router;

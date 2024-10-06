@@ -35,16 +35,6 @@ ratingSchema.pre('save', async function (next) {
       return next(new Error('Product Not Available'));
     }
 
-    // Check if the user has already rated this product
-    const existingRating = await mongoose.model('Rating').findOne({
-      user_id: this.user_id,
-      product_id: this.product_id
-    });
-
-    if (existingRating) {
-      return next(new Error('You have already rated this product.'));
-    }
-
     next();
   } catch (error) {
     next(error);

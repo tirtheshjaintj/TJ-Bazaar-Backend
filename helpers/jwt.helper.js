@@ -4,6 +4,7 @@ const expiresIn=process.env.TOKEN_EXPIRATION;
 
 function setUser(user) {
     console.log(user);
+    console.log(JWT_SECRET);
     return jwt.sign({id:user._id},JWT_SECRET, { expiresIn});
 }
 function getUser(token) {

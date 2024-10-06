@@ -8,20 +8,36 @@ const category = require('../models/category.model');
 
 // Get Product by ID
 const getProduct = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({status:false,message: errors.array()[0].msg });
-    }
     try {
+        // Fetch the product by ID and populate category and seller details
         const product = await Product.findById(req.params.id)
-            .populate('category_id')
-            .populate('seller_id');
+        .populate('category_id')  // Populating category details
+        .populate({
+            path: 'seller_id',
+            select: 'name _id' // Select only name and _id
+        })
+        .lean();// Convert MongoDB documents to plain JS objects
+
         if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
+            return res.status(404).json({ status: false, message: 'Product not found' });
         }
-        res.status(200).json(product);
+
+        // Fetch media associated with this product
+        const media = await Media.find({ product_id: product._id }).lean();
+
+        // Attach media to the product
+        product.media = media.length > 0 ? media[0].images : []; // Assuming media contains images in an array
+
+        // Respond with the product details
+        return res.status(200).json({
+            status: true,
+            message: 'Product retrieved successfully',
+            data: product
+        });
+
     } catch (error) {
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error(error);
+        return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
 };
 
@@ -81,8 +97,11 @@ const searchProducts = async (req, res) => {
             return res.status(400).json({ status: false, message: 'Keyword is required for searching' });
         }
 
-        // Split the keyword into individual keywords (handles space-separated words)
-        const keywords = keyword.split(' ').filter(Boolean).map(kw => kw.trim());
+        // Remove all special characters and symbols, allowing only alphanumeric characters and spaces
+        const sanitizedKeyword = keyword.replace(/[^a-zA-Z0-9\s]/g, ' ');
+        
+        // Split the sanitized keyword into individual keywords
+        const keywords = sanitizedKeyword.split(' ').filter(Boolean).map(kw => kw.trim());
 
         // Create an array for price keywords if they are valid numbers
         const priceKeywords = keywords.filter(kw => !isNaN(Number(kw))).map(kw => Number(kw));
@@ -131,6 +150,7 @@ const searchProducts = async (req, res) => {
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
 };
+
 
 
 
