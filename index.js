@@ -17,7 +17,13 @@ const cookieParser = require('cookie-parser');
 
 
 //MiddleWaress
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+const corsOptions = {
+    origin: 'https://tjbazaar.netlify.app', // Allow your Netlify domain
+    credentials: true,  // If you're using credentials (like cookies)
+    optionsSuccessStatus: 200
+  };
+  app.use(cors(corsOptions));
+  
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended:true}));
