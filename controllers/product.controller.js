@@ -311,4 +311,102 @@ const getCategories=async (req,res)=>{
     }
 }
 
-module.exports = { getProduct, createProduct, updateProduct, deleteProduct,getCategories,removeImage,getProducts,searchProducts};
+// Get Products by Category ID
+const getProductsByCategory = async (req, res) => {
+    const { category_id } = req.params;
+
+    try {
+        // Validate category exists
+        const category = await Category.findById(category_id).lean();
+        if (!category) {
+            return res.status(404).json({ status: false, message: 'Category not found' });
+        }
+
+        // Fetch products by category ID
+        const products = await Product.find({ category_id })
+            .populate({
+                path: 'seller_id',
+                select: 'name _id' // Select only seller name and _id
+            })
+            .lean();
+
+        // Fetch all media associated with these products
+        const productIds = products.map(product => product._id);
+        const media = await Media.find({ product_id: { $in: productIds } }).lean();
+
+        // Map product IDs to their corresponding media URLs
+        const mediaMap = media.reduce((acc, item) => {
+            acc[item.product_id] = item.images;
+            return acc;
+        }, {});
+
+        // Attach media to products
+        const productsWithMedia = products.map(product => ({
+            ...product,
+            media: mediaMap[product._id] || []  // Attach media if exists, else empty array
+        }));
+
+        // Respond with the category, seller details, and products separately
+        return res.status(200).json({
+            status: true,
+            message: 'Products retrieved successfully',
+            category,
+            products: productsWithMedia
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: false, message: 'Internal Server Error' });
+    }
+};
+
+// Get Products by Seller ID
+const getProductsBySeller = async (req, res) => {
+    const { seller_id } = req.params;
+
+    try {
+        // Validate seller exists
+        const seller = await Seller.findById(seller_id).select("name _id");
+        if (!seller) {
+            return res.status(404).json({ status: false, message: 'Seller not found' });
+        }
+
+        // Fetch products by seller ID
+        const products = await Product.find({ seller_id })
+            .populate('category_id')  // Populating category details
+            .lean();
+
+        // Fetch all media associated with these products
+        const productIds = products.map(product => product._id);
+        const media = await Media.find({ product_id: { $in: productIds } }).lean();
+
+        // Map product IDs to their corresponding media URLs
+        const mediaMap = media.reduce((acc, item) => {
+            acc[item.product_id] = item.images;
+            return acc;
+        }, {});
+
+        // Attach media to products
+        const productsWithMedia = products.map(product => ({
+            ...product,
+            media: mediaMap[product._id] || []  // Attach media if exists, else empty array
+        }));
+
+        // Respond with the seller, category details, and products separately
+        return res.status(200).json({
+            status: true,
+            message: 'Products retrieved successfully',
+            seller,
+            products: productsWithMedia
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: false, message: 'Internal Server Error' });
+    }
+};
+
+
+module.exports = { getProduct, createProduct, updateProduct, deleteProduct,getCategories,removeImage,getProducts,searchProducts
+    ,getProductsBySeller,getProductsByCategory
+};

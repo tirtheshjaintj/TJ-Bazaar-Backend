@@ -14,16 +14,15 @@ const review=require("./routes/rating.route");
 const connectDB = require('./helpers/db.helper');
 const cors=require('cors');
 const cookieParser = require('cookie-parser');
-
-
 //MiddleWaress
 const corsOptions = {
     origin: 'https://tjbazaar.netlify.app', // Allow your Netlify domain
-    credentials: true,  // If you're using credentials (like cookies)
-    optionsSuccessStatus: 200
+    // origin:process.env.FRONTEND_URL,
+    credentials: true
   };
-  app.use(cors(corsOptions));
-  
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended:true}));

@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { check } = require('express-validator');
-const { getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts,searchProducts} = require('../controllers/product.controller');
+const { getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts,searchProducts, getProductsByCategory, getProductsBySeller} = require('../controllers/product.controller');
 const router = Router();
 const { restrictLogIn } = require('../middlewares/authCheck');
 const upload = require('../middlewares/multer');
@@ -93,5 +93,18 @@ router.post('/categories',async (req,res)=>{
         res.status(500).json({message:error.message});
     }
 });
+
+// Fetch Products by Category ID
+router.get('/category/:category_id',
+    check('category_id').isMongoId().withMessage('Invalid category ID'),
+    getProductsByCategory
+);
+
+// Fetch Products by Seller ID
+router.get('/seller/:seller_id',
+    check('seller_id').isMongoId().withMessage('Invalid seller ID'),
+    getProductsBySeller
+);
+
 
 module.exports = router;
