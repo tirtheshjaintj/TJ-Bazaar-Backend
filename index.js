@@ -15,11 +15,22 @@ const connectDB = require('./helpers/db.helper');
 const cors=require('cors');
 const cookieParser = require('cookie-parser');
 //MiddleWaress
+const allowedOrigins = [
+  'https://tjbazaar.netlify.app',
+  process.env.FRONTEND_URL
+];
+
 const corsOptions = {
-    origin: 'https://tjbazaar.netlify.app', // Allow your Netlify domain
-    // origin:process.env.FRONTEND_URL,
-    credentials: true
-  };
+  origin: function (origin, callback) {
+    // Allow requests with no origin, like mobile apps or curl requests
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
 
 app.use(cors(corsOptions));
 

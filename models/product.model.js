@@ -29,13 +29,6 @@ const productSchema = new mongoose.Schema({
   description: {
     type: String,
     required: [true, 'Product Description is required'],
-    validate: {
-      validator: function (v) {
-        // This regex allows letters, numbers, spaces, punctuation, and special characters.
-        return /^.{100,1500}$/.test(v);
-      },
-      message: props => `${props.value} is not a valid product description! It should be 100 to 1500 characters long and may include letters, numbers, spaces, punctuation, and special characters.`
-    }
   },
   tags:{
     type: [String],
