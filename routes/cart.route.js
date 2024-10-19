@@ -1,7 +1,8 @@
 const { restrictLogIn } = require('../middlewares/authCheck');
 const { Router } = require('express');
-const { check, validationResult} = require('express-validator');
+const { check} = require('express-validator');
 const { addToCart, removeFromCart, getCart,getCheckCart, getCartItemCount} = require('../controllers/cart.controller');
+const { validate } = require('../middlewares/validate');
 
 const router=Router();
 
@@ -17,13 +18,7 @@ const checkInCartValidations = [
     check('id').isMongoId().withMessage('Invalid Product ID'),
 ];
 
-const validate = (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
-    next();
-};
+
 
 router.post("/add",restrictLogIn,addToCartValidations,validate,addToCart);
 router.delete("/remove/:id",restrictLogIn,removeFromCartValidations,validate,removeFromCart);

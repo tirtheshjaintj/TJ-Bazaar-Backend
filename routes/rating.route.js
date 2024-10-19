@@ -1,7 +1,8 @@
 const { Router } = require("express");
 const { addReview, updateReview, deleteReview, getReviews } = require("../controllers/rating.controller");
 const { restrictLogIn } = require("../middlewares/authCheck");
-const { check, validationResult } = require('express-validator');
+const { check} = require('express-validator');
+const { validate } = require("../middlewares/validate");
 const router = Router();
 
 // Validation rules
@@ -11,14 +12,6 @@ const reviewValidations = [
   check('review').optional().isString().withMessage('Review must be a string')
 ];
 
-// Middleware to validate input
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: false, message: errors.array()[0].msg });
-  }
-  next();
-};
 
 // Add a new review
 router.post('/add', restrictLogIn, reviewValidations, validate, addReview);

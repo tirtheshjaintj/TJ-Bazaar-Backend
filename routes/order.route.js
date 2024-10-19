@@ -1,6 +1,8 @@
 const { Router } = require('express');
-const { check, validationResult} = require('express-validator');
+const { check} = require('express-validator');
 const router = Router();
+const { validate } = require('../middlewares/validate');
+
 // Import controllers
 const { createOrderController, verifyOrderController,getOrders } = require('../controllers/order.controller.js');
 const { restrictLogIn } = require('../middlewares/authCheck.js');
@@ -18,14 +20,6 @@ const verifyOrderValidations = [
     check('razorpay_signature').notEmpty().withMessage('Signature is required'),
 ];
 
-// Middleware to check validation results
-const validate = (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
-    next();
-};
 
 // Route to create an order with validation
 router.post('/create_order',restrictLogIn, createOrderValidations, validate, createOrderController);

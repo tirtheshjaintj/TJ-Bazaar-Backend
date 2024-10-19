@@ -2,7 +2,6 @@ const Product = require('../models/product.model');
 const Seller = require('../models/seller.model');
 const Media = require('../models/media.model');
 const uploadToCloudinary = require('../helpers/cloud.helper');
-const { validationResult } = require('express-validator');
 const Category = require('../models/category.model');
 const category = require('../models/category.model');
 
@@ -11,12 +10,12 @@ const getProduct = async (req, res) => {
     try {
         // Fetch the product by ID and populate category and seller details
         const product = await Product.findById(req.params.id)
-        .populate('category_id')  // Populating category details
-        .populate({
-            path: 'seller_id',
-            select: 'name _id' // Select only name and _id
-        })
-        .lean();// Convert MongoDB documents to plain JS objects
+            .populate('category_id')  // Populating category details
+            .populate({
+                path: 'seller_id',
+                select: 'name _id' // Select only name and _id
+            })
+            .lean();// Convert MongoDB documents to plain JS objects
 
         if (!product) {
             return res.status(404).json({ status: false, message: 'Product not found' });
@@ -99,7 +98,7 @@ const searchProducts = async (req, res) => {
 
         // Remove all special characters and symbols, allowing only alphanumeric characters and spaces
         const sanitizedKeyword = keyword.replace(/[^a-zA-Z0-9\s]/g, ' ');
-        
+
         // Split the sanitized keyword into individual keywords
         const keywords = sanitizedKeyword.split(' ').filter(Boolean).map(kw => kw.trim());
 
@@ -120,8 +119,8 @@ const searchProducts = async (req, res) => {
                 ...(priceKeywords.length > 0 ? priceKeywords.map(price => ({ price })) : []),
             ]
         })
-        .populate('category_id') // Populate category details without compulsory matching
-        .lean();
+            .populate('category_id') // Populate category details without compulsory matching
+            .lean();
 
         // Fetch all media associated with these products
         const productIds = products.map(product => product._id);
@@ -156,10 +155,7 @@ const searchProducts = async (req, res) => {
 
 // Create Product
 const createProduct = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({status:false,message: errors.array()[0].msg });
-    }
+
 
     const { name, description, price, quantity, tags, category_id } = req.body;
     const userId = req.user.id;
@@ -167,12 +163,12 @@ const createProduct = async (req, res) => {
     try {
         const seller = await Seller.findById(userId);
         if (!seller) {
-            return res.status(401).json({status:false,message: "Seller not found" });
+            return res.status(401).json({ status: false, message: "Seller not found" });
         }
 
-        const category= await Category.findById(category_id);
-        if(!category){
-            return res.status(401).json({status:false,message: "Category not found" });
+        const category = await Category.findById(category_id);
+        if (!category) {
+            return res.status(401).json({ status: false, message: "Category not found" });
         }
 
         const product = new Product({
@@ -199,20 +195,16 @@ const createProduct = async (req, res) => {
         }
 
         await product.save();
-        res.status(201).json({status:true, message: 'Product created successfully', product });
+        res.status(201).json({ status: true, message: 'Product created successfully', product });
     } catch (error) {
-console.log(error);
-        res.status(500).json({status:false, message: "Internal Server Error" });
+        console.log(error);
+        res.status(500).json({ status: false, message: "Internal Server Error" });
     }
 };
 
 // Update Product
 const updateProduct = async (req, res) => {
-    const errors = validationResult(req);
 
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
 
     const { name, description, price, quantity, tags, category_id } = req.body;
 
@@ -227,9 +219,9 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        const category= await Category.findById(category_id);
-        if(!category){
-            return res.status(401).json({status:false,message: "Category not found" });
+        const category = await Category.findById(category_id);
+        if (!category) {
+            return res.status(401).json({ status: false, message: "Category not found" });
         }
 
         product.name = name || product.name;
@@ -243,7 +235,7 @@ const updateProduct = async (req, res) => {
         if (req.files && req.files.length > 0) {
             const imageUploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
             const imageUrls = await Promise.all(imageUploadPromises);
-            
+
             // Update media array
             const media = await Media.findOne({ product_id: productId });
             if (media) {
@@ -287,27 +279,27 @@ const removeImage = async (req, res) => {
 // Delete Product
 const deleteProduct = async (req, res) => {
     try {
-        const seller_id=req.user.id;
-        const product = await Product.findOneAndDelete({_id:req.params.id,seller_id});
+        const seller_id = req.user.id;
+        const product = await Product.findOneAndDelete({ _id: req.params.id, seller_id });
         if (!product) {
-            return res.status(404).json({status:false, message: 'Product not found' });
+            return res.status(404).json({ status: false, message: 'Product not found' });
         }
         // Delete associated media
         await Media.findOneAndDelete({ product_id: req.params.id });
-        res.status(200).json({ status:true,message: 'Product deleted successfully' });
+        res.status(200).json({ status: true, message: 'Product deleted successfully' });
     } catch (error) {
-        res.status(500).json({ status:false,message: "Internal Server Error" });
+        res.status(500).json({ status: false, message: "Internal Server Error" });
     }
 };
 
-const getCategories=async (req,res)=>{
+const getCategories = async (req, res) => {
     try {
         const categories = await category.find({}).select("_id name");
-        res.status(200).json({ status:true,message: 'Categories Received',categories});
+        res.status(200).json({ status: true, message: 'Categories Received', categories });
     } catch (error) {
         console.log("Hello");
         console.error(error);
-        res.status(500).json({ status:false,message:error.message });
+        res.status(500).json({ status: false, message: error.message });
     }
 }
 
@@ -407,6 +399,7 @@ const getProductsBySeller = async (req, res) => {
 };
 
 
-module.exports = { getProduct, createProduct, updateProduct, deleteProduct,getCategories,removeImage,getProducts,searchProducts
-    ,getProductsBySeller,getProductsByCategory
+module.exports = {
+    getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts, searchProducts
+    , getProductsBySeller, getProductsByCategory
 };

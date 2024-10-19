@@ -76,7 +76,7 @@ const sellerSchema = new mongoose.Schema({
     type: String,
     validate: {
       validator: function (val) {
-        return val.length == 6;
+        return !val || val?.length == 6;
       },
       message: () => `OTP must be 6 digits`
     }

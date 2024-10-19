@@ -5,10 +5,12 @@ const router = Router();
 const { restrictLogIn } = require('../middlewares/authCheck');
 const upload = require('../middlewares/multer');
 const category = require('../models/category.model');
+const { validate } = require('../middlewares/validate');
 
 // Get Product Details
 router.get('/:id',
     check('id').isMongoId().withMessage('Invalid product ID'),
+    validate,
     getProduct
 );
 
@@ -38,6 +40,7 @@ router.post('/create',
         check('tags').optional().isArray({ min: 1 }).withMessage('Tags must be an array with at least one tag')
     ], 
     restrictLogIn, 
+    validate,
     createProduct
 );
 
@@ -60,6 +63,7 @@ router.put('/update/:id',
         check('quantity').optional().isInt({ min: 0 }).withMessage('Quantity must be a non-negative integer')
     ],
     restrictLogIn,
+    validate,
     updateProduct
 );
 
@@ -70,6 +74,7 @@ router.delete('/removeimg/:id',
         check('product_id').isMongoId().withMessage('Product ID is required and must be a valid MongoDB ObjectId'),
         check('image_url').isURL().withMessage('Image URL is required and must be a valid URL')
     ],
+    validate,
     removeImage
 );
 
@@ -77,32 +82,35 @@ router.delete('/removeimg/:id',
 router.delete('/delete/:id', 
     check('id').isMongoId().withMessage('Invalid product ID'),
     restrictLogIn, 
+    validate,
     deleteProduct
 );
 
 router.get('/get/categories',getCategories);
 
-router.post('/categories',async (req,res)=>{
-    try {
-        const {name}=req.body;
-        const newCategory=await category.create({
-            name
-        });
-        res.status(200).json({category:newCategory});
-    } catch (error) {
-        res.status(500).json({message:error.message});
-    }
-});
+// router.post('/categories',async (req,res)=>{
+//     try {
+//         const {name}=req.body;
+//         const newCategory=await category.create({
+//             name
+//         });
+//         res.status(200).json({category:newCategory});
+//     } catch (error) {
+//         res.status(500).json({message:error.message});
+//     }
+// });
 
 // Fetch Products by Category ID
 router.get('/category/:category_id',
     check('category_id').isMongoId().withMessage('Invalid category ID'),
+    validate,
     getProductsByCategory
 );
 
 // Fetch Products by Seller ID
 router.get('/seller/:seller_id',
     check('seller_id').isMongoId().withMessage('Invalid seller ID'),
+    validate,
     getProductsBySeller
 );
 

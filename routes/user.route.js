@@ -7,12 +7,17 @@ const {
     updateUser,
     verifyOtp,
     resendOtp,
-    getUser
+    getUser,
+    changePassword,
+    forgotPassword
 } = require('../controllers/user.controller');
+const { validate } = require('../middlewares/validate');
 
 const router = express.Router();
 
-router.get('/getUser',restrictLogIn, getUser);
+
+
+router.get('/getUser',restrictLogIn,validate, getUser);
 
 router.post('/signup',
     [
@@ -22,6 +27,7 @@ router.post('/signup',
         check('address').isLength({ min: 10 }).withMessage('Address must be at least 10 characters long.'),
         check('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.')
     ],
+    validate,
     signup
 );
 
@@ -30,6 +36,7 @@ router.post('/login',
         check('email').isEmail().withMessage('Please enter a valid email address.'),
         check('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.')
     ],
+    validate,
     login
 );
 
@@ -41,6 +48,7 @@ router.put('/update',
         check('phone_number').optional().matches(/^[0-9]{10}$/).withMessage('Phone number must contain exactly 10 digits.'),
         check('address').optional().isLength({ min: 10 }).withMessage('Address must be at least 10 characters long.')
     ],
+    validate,
     updateUser
 );
 
@@ -49,13 +57,28 @@ router.post('/verify-otp/:userid',
         check('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits.'),
         check('userid').isMongoId().withMessage('Invalid User ID.')
     ],
+    validate,
     verifyOtp
 );
 
 router.post('/resend-otp/:userid',
-    check('userid').isMongoId().withMessage('Invalid User ID.')
-    ,
+    check('userid').isMongoId().withMessage('Invalid User ID.'),
+    validate,
     resendOtp
+);
+
+router.post('/forgot-password',
+    check('email').isEmail().withMessage('Please enter your valid email address'),
+    validate,
+    forgotPassword
+)
+
+router.post('/change-password',
+    check('email').isEmail().withMessage('Please enter your valid email address'),
+    check('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits.'),
+    check('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.'),
+    validate,
+    changePassword
 );
 
 module.exports = router;

@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { restrictLogIn } = require('../middlewares/authCheck');
 const { check, validationResult } = require('express-validator');
 const { addToWishlist, removeFromWishlist, getWishlist, checkInWishlist, getWishlistItemCount } = require('../controllers/wishlist.controller');
+const { validate } = require("../middlewares/validate");
 const router = Router();
 
 // Validation rules
@@ -17,14 +18,7 @@ const checkInWishlistValidations = [
     check('product_id').isMongoId().withMessage('Invalid Product ID')
 ];
 
-// Validation middleware
-const validate = (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
-    next();
-};
+
 
 // Routes
 router.post("/add", restrictLogIn, addToWishlistValidations, validate, addToWishlist);

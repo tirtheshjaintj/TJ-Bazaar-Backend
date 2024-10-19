@@ -1,14 +1,10 @@
-const { validationResult } = require('express-validator');
 const User = require('../models/user.model');
 const { setUser } = require('../helpers/jwt.helper');
 const sendMail = require('../helpers/mail.helper');
 const crypto = require('crypto');
 
 const signup = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
+    
 
     const { name, email, phone_number, address, password } = req.body;
     const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
@@ -57,10 +53,7 @@ const signup = async (req, res) => {
 
 
 const login = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
+    
 
     const { email, password } = req.body;
 
@@ -88,10 +81,7 @@ const login = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
+    
 
     const { name, email, phone_number, address } = req.body;
 
@@ -115,10 +105,7 @@ const updateUser = async (req, res) => {
 };
 
 const verifyOtp = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
+    
 
     const { otp } = req.body;
     const { userid } = req.params;
@@ -145,10 +132,7 @@ const verifyOtp = async (req, res) => {
 
 const resendOtp = async (req, res) => {
     const { userid } = req.params;
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: false, message: errors.array()[0].msg });
-    }
+    
     try {
         const user = await User.findOne({ _id: userid, verified: false });
         if (!user) {
@@ -180,6 +164,43 @@ const getUser =async (req, res) => {
  }
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+    const { email } = req.body;
+    const user = await User.findOne({ email, verified: true });
+    if (!user) return res.status(404).json({ status: false, message: 'No Account Exists' });
+
+    const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
+    user.otp = otp; // Save OTP in the user document
+    await user.save();
+
+    const mailStatus = await sendMail('TJ Bazaar🛒: Your OTP Code to Reset Password', user.email, `Your OTP code to Reset Password is ${otp}`);
+
+    if (mailStatus) {
+        res.status(200).json({ status: true, message: 'OTP Sent to your Email!' });
+    } else {
+        res.status(500).json({ status: false, message: 'Failed to send OTP.' });
+    }           
+} catch (error) {
+    res.status(500).json({ status: false, message: 'Failed to send OTP.' });
+}
+};
+
+const changePassword=async(req,res)=>{
+    try {
+    const {email,otp,password}=req.body;
+    const user=await User.findOne({email,otp,verified:true});
+    if(!user) return res.status(404).json({ status: false, message: 'OTP Not Correct' });
+    user.password = password;
+    user.otp=null;
+    await user.save();
+    const mailStatus = await sendMail('TJ Bazaar🛒: Password Changed Successfully ✅', user.email, `TJ Bazaar🛒: Password Changed Successfully ✅`);
+    return res.status(200).json({ status: true, message:"Password updated successfully"}); 
+} catch (error) {
+    res.status(500).json({ status: false, message: 'Failed to send OTP.' });   
+}
+};
+
 
 
 module.exports = {
@@ -188,5 +209,7 @@ module.exports = {
     updateUser,
     verifyOtp,
     resendOtp,
-    getUser
+    getUser,
+    forgotPassword,
+    changePassword
 };
