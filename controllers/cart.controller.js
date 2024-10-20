@@ -1,9 +1,11 @@
-const expressAsyncHandler = require("express-async-handler");
+const asyncHandler = require("express-async-handler");
 const Cart = require("../models/cart.model");
 const User = require("../models/user.model");
 const Product = require("../models/product.model");
 const Media = require("../models/media.model");
-const addToCart = expressAsyncHandler(async (req, res) => {
+
+
+const addToCart = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const { product_id, quantity } = req.body;
@@ -27,7 +29,7 @@ const addToCart = expressAsyncHandler(async (req, res) => {
     }
 });
 
-const removeFromCart = expressAsyncHandler(async (req, res) => {
+const removeFromCart = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const cart_id = req.params.id;
@@ -39,7 +41,7 @@ const removeFromCart = expressAsyncHandler(async (req, res) => {
     }
 });
 
-const getCart = expressAsyncHandler(async (req, res) => {
+const getCart = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const user = await User.findById(user_id).select("-password -otp -__v -verified");
@@ -67,7 +69,7 @@ const getCart = expressAsyncHandler(async (req, res) => {
 });
 
 
-const getCheckCart = expressAsyncHandler(async (req,res) => {
+const getCheckCart = asyncHandler(async (req,res) => {
 try {
     const user_id = req.user.id;
     const product_id= req.params.id;
@@ -79,7 +81,7 @@ try {
 }
 });
 
-const getCartItemCount = expressAsyncHandler(async (req, res) => {
+const getCartItemCount = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
 

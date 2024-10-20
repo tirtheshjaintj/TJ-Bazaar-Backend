@@ -9,7 +9,7 @@ const Order = require('../models/order.model');
 const Payment = require('../models/payment.model');
 
 // Signup
-const signup = async (req, res) => {
+const signup = asyncHandler(async (req, res) => {
     const { name, email, phone_number, address, gst_number, password } = req.body;
     const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
 
@@ -57,12 +57,10 @@ const signup = async (req, res) => {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 // Login
-const login = async (req, res) => {
-   
-
+const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     try {
@@ -84,10 +82,10 @@ const login = async (req, res) => {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 // Update Seller Details
-const updateSeller = async (req, res) => {
+const updateSeller = asyncHandler(async (req, res) => {
    
 
     const { name, phone_number, address, gst_number } = req.body;
@@ -108,10 +106,10 @@ const updateSeller = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 // Verify OTP
-const verifyOtp = async (req, res) => {
+const verifyOtp = asyncHandler(async (req, res) => {
    
 
     const { otp } = req.body;
@@ -135,12 +133,10 @@ const verifyOtp = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
-
-
+});
 
 // Resend OTP
-const resendOtp = async (req, res) => {
+const resendOtp = asyncHandler(async (req, res) => {
     const { sellerid } = req.params;
    
     try {
@@ -163,9 +159,9 @@ const resendOtp = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
-const getProducts = async (req, res) => {
+const getProducts = asyncHandler(async (req, res) => {
    
 
     try {
@@ -197,11 +193,11 @@ const getProducts = async (req, res) => {
         console.error(error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 const getOrders = asyncHandler(async (req, res) => {
-    const seller_id = req.user.id;
     try {
+        const seller_id = req.user.id;
         // Fetch all products for the seller
         const products = await Product.find({ seller_id }).select('_id');
         const productIds = products.map(product => product._id);
@@ -259,9 +255,7 @@ const getOrders = asyncHandler(async (req, res) => {
     }
 });
 
-
-
-const getSeller = async (req, res) => {
+const getSeller = asyncHandler(async (req, res) => {
     try {
         
         const sellerId = req.user.id;
@@ -272,9 +266,9 @@ const getSeller = async (req, res) => {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
-const forgotPassword = async (req, res) => {
+const forgotPassword = asyncHandler(async (req, res) => {
     try {
     const { email } = req.body;
     const seller = await Seller.findOne({ email, verified: true });
@@ -294,9 +288,9 @@ const forgotPassword = async (req, res) => {
 } catch (error) {
     res.status(500).json({ status: false, message: 'Failed to send OTP.' });
 }
-};
+});
 
-const changePassword=async(req,res)=>{
+const changePassword=asyncHandler(async(req,res)=>{
     try {
     const {email,otp,password}=req.body;
     const seller=await Seller.findOne({email,otp,verified:true});
@@ -310,7 +304,9 @@ const changePassword=async(req,res)=>{
     console.log(error);
     res.status(500).json({ status: false, message: 'Failed to verify OTP.' });   
 }
-};
+});
+
+
 
 module.exports = {
     signup,

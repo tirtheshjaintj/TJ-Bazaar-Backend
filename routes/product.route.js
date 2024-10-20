@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { check } = require('express-validator');
-const { getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts,searchProducts, getProductsByCategory, getProductsBySeller} = require('../controllers/product.controller');
+const { getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts,searchProducts, getProductsByCategory, getProductsBySeller, searchProductSuggestions} = require('../controllers/product.controller');
 const router = Router();
 const { restrictLogIn } = require('../middlewares/authCheck');
 const upload = require('../middlewares/multer');
@@ -18,8 +18,14 @@ router.get("/get/products",getProducts);
 
 
 router.post("/search",
-check('keyword').not().isEmpty().withMessage('Invalid keyword')
+check('keyword').not().isEmpty().withMessage('Invalid keyword'),
+validate
 ,searchProducts);
+
+router.post("/suggest",
+    check('keyword').not().isEmpty().withMessage('Invalid keyword'),
+    validate
+,searchProductSuggestions);
 
 // Create New Product
 router.post('/create', 

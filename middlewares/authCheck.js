@@ -7,9 +7,9 @@ async function restrictLogIn(req, res, next) {
         if (token && token.startsWith('Bearer ')) {
             token = token.substring(7); // Remove 'Bearer ' prefix
         }
-        console.log('Authorization token:', token);
+        // console.log('Authorization token:', token);
         const user = getUser(token);    
-        console.log(user);    
+        // console.log(user);    
         if (!user) {
             return res.status(401).json({ status: false, message: "Invalid Login Details" });
         }

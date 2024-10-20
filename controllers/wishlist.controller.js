@@ -1,11 +1,11 @@
-const expressAsyncHandler = require("express-async-handler");
+const asyncHandler = require("express-async-handler");
 const Wishlist = require("../models/wishlist.model");
 const User = require("../models/user.model");
 const Product = require("../models/product.model");
 const Media = require("../models/media.model");
 
 // Add to wishlist
-const addToWishlist = expressAsyncHandler(async (req, res) => {
+const addToWishlist = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const { product_id } = req.body;
@@ -27,7 +27,7 @@ const addToWishlist = expressAsyncHandler(async (req, res) => {
 });
 
 // Remove from wishlist
-const removeFromWishlist = expressAsyncHandler(async (req, res) => {
+const removeFromWishlist = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const product_id = req.params.id;
@@ -41,7 +41,7 @@ const removeFromWishlist = expressAsyncHandler(async (req, res) => {
 });
 
 // Get wishlist items for the user
-const getWishlist = expressAsyncHandler(async (req, res) => {
+const getWishlist = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const user = await User.findById(user_id).select('-password -otp -__v -verified');
@@ -69,7 +69,7 @@ const getWishlist = expressAsyncHandler(async (req, res) => {
 
 
 // Check if a product is in the wishlist
-const checkInWishlist = expressAsyncHandler(async (req, res) => {
+const checkInWishlist = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const product_id = req.params.product_id;
@@ -84,7 +84,7 @@ const checkInWishlist = expressAsyncHandler(async (req, res) => {
 });
 
 //WishList
-const getWishlistItemCount = expressAsyncHandler(async (req, res) => {
+const getWishlistItemCount = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         // Fetch only the quantity field for all wishlist items of the user

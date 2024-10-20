@@ -1,10 +1,10 @@
-const expressAsyncHandler = require("express-async-handler");
+const asyncHandler = require("express-async-handler");
 const Rating = require("../models/rating.model");
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
 
 // Add a review
-const addReview = expressAsyncHandler(async (req, res) => {
+const addReview = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const { product_id, rating, review } = req.body;
@@ -38,7 +38,7 @@ const addReview = expressAsyncHandler(async (req, res) => {
 
 
 // Update a review
-const updateReview = expressAsyncHandler(async (req, res) => {
+const updateReview = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const review_id = req.params.id;
@@ -60,7 +60,7 @@ const updateReview = expressAsyncHandler(async (req, res) => {
 });
 
 // Delete a review
-const deleteReview = expressAsyncHandler(async (req, res) => {
+const deleteReview = asyncHandler(async (req, res) => {
     try {
         const user_id = req.user.id;
         const review_id = req.params.id;
@@ -76,7 +76,7 @@ const deleteReview = expressAsyncHandler(async (req, res) => {
 });
 
 //Get reviews for product id
-const getReviews=expressAsyncHandler(async (req,res)=>{
+const getReviews=asyncHandler(async (req,res)=>{
 const product_id=req.params.id;
 const product = await Product.findById(product_id);
 if (!product) return res.status(404).json({ status: false, message: 'Product Not Found' });

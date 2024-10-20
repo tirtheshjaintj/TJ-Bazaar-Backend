@@ -4,9 +4,10 @@ const Media = require('../models/media.model');
 const uploadToCloudinary = require('../helpers/cloud.helper');
 const Category = require('../models/category.model');
 const category = require('../models/category.model');
+const asyncHandler = require("express-async-handler");
 
 // Get Product by ID
-const getProduct = async (req, res) => {
+const getProduct = asyncHandler(async (req, res) => {
     try {
         // Fetch the product by ID and populate category and seller details
         const product = await Product.findById(req.params.id)
@@ -38,9 +39,9 @@ const getProduct = async (req, res) => {
         console.error(error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
-const getProducts = async (req, res) => {
+const getProducts = asyncHandler(async (req, res) => {
     try {
         // Fetch all products and populate category and seller details
         const products = await Product.find({})
@@ -85,10 +86,10 @@ const getProducts = async (req, res) => {
         console.error(error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
-//Search Products
-const searchProducts = async (req, res) => {
+// Search Products
+const searchProducts = asyncHandler(async (req, res) => {
     try {
         const { keyword } = req.query; // Assume keyword is passed in the query params
         console.log(keyword);
@@ -97,30 +98,21 @@ const searchProducts = async (req, res) => {
         }
 
         // Remove all special characters and symbols, allowing only alphanumeric characters and spaces
-        const sanitizedKeyword = keyword.replace(/[^a-zA-Z0-9\s]/g, ' ');
+        const sanitizedKeyword = keyword.replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
 
         // Split the sanitized keyword into individual keywords
         const keywords = sanitizedKeyword.split(' ').filter(Boolean).map(kw => kw.trim());
 
-        // Create an array for price keywords if they are valid numbers
-        const priceKeywords = keywords.filter(kw => !isNaN(Number(kw))).map(kw => Number(kw));
-
         // Perform search across multiple fields using $or for each keyword
         const products = await Product.find({
-            $or: [
-                ...keywords.map(kw => ({
-                    $or: [
-                        { name: { $regex: kw, $options: 'i' } },        // Case-insensitive match in product name
-                        { description: { $regex: kw, $options: 'i' } }, // Case-insensitive match in description
-                        { tags: { $regex: kw, $options: 'i' } },        // Case-insensitive match in tags
-                    ]
-                })),
-                // Match price if it is a valid number from priceKeywords
-                ...(priceKeywords.length > 0 ? priceKeywords.map(price => ({ price })) : []),
-            ]
+            $or: keywords.flatMap(kw => ([
+                { name: { $regex: kw, $options: 'i' } },        // Case-insensitive match in product name
+                { description: { $regex: kw, $options: 'i' } }, // Case-insensitive match in description
+                { tags: { $regex: kw, $options: 'i' } },        // Case-insensitive match in tags
+            ]))
         })
-            .populate('category_id') // Populate category details without compulsory matching
-            .lean();
+        .populate('category_id') // Populate category details
+        .lean();
 
         // Fetch all media associated with these products
         const productIds = products.map(product => product._id);
@@ -148,13 +140,52 @@ const searchProducts = async (req, res) => {
         console.error(error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
+
+// Search Products for Suggestions
+const searchProductSuggestions = asyncHandler(async (req, res) => {
+    try {
+        const { keyword } = req.query; // Assume keyword is passed in the query params
+
+        if (!keyword) {
+            return res.status(400).json({ status: false, message: 'Keyword is required for searching' });
+        }
+
+        // Remove all special characters and symbols, allowing only alphanumeric characters and spaces
+        const sanitizedKeyword = keyword.replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
+
+        // Split the sanitized keyword into individual keywords
+        const keywords = sanitizedKeyword.split(' ').filter(Boolean).map(kw => kw.trim());
+
+        // Perform search across multiple fields using regex for case-insensitive match
+        const products = await Product.find({
+            $or: keywords.flatMap(kw => ([
+                { name: { $regex: kw, $options: 'i' } },        // Search in name
+                { description: { $regex: kw, $options: 'i' } }, // Search in description
+                { tags: { $regex: kw, $options: 'i' } },
+            ]))
+        })
+        .limit(5) // Limit results to top 5
+        .select('name _id') // Select only the title and product_id
+        .lean();
+
+        return res.status(200).json({
+            status: true,
+            message: 'Search suggestions retrieved successfully',
+            data: products
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: false, message: 'Internal Server Error' });
+    }
+});
 
 
 
 
 // Create Product
-const createProduct = async (req, res) => {
+const createProduct = asyncHandler(async (req, res) => {
 
 
     const { name, description, price, quantity, tags, category_id } = req.body;
@@ -200,10 +231,10 @@ const createProduct = async (req, res) => {
         console.log(error);
         res.status(500).json({ status: false, message: "Internal Server Error" });
     }
-};
+});
 
 // Update Product
-const updateProduct = async (req, res) => {
+const updateProduct = asyncHandler(async (req, res) => {
 
 
     const { name, description, price, quantity, tags, category_id } = req.body;
@@ -255,9 +286,9 @@ const updateProduct = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: false, message: "Internal Server Error" });
     }
-};
+});
 
-const removeImage = async (req, res) => {
+const removeImage = asyncHandler(async (req, res) => {
     const { imageUrl } = req.body;
     const product_id = req.params.id;
     try {
@@ -274,10 +305,10 @@ const removeImage = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: false, message: "Internal Server Error" });
     }
-};
+});
 
 // Delete Product
-const deleteProduct = async (req, res) => {
+const deleteProduct = asyncHandler(async (req, res) => {
     try {
         const seller_id = req.user.id;
         const product = await Product.findOneAndDelete({ _id: req.params.id, seller_id });
@@ -290,9 +321,9 @@ const deleteProduct = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: false, message: "Internal Server Error" });
     }
-};
+});
 
-const getCategories = async (req, res) => {
+const getCategories = asyncHandler(async (req, res) => {
     try {
         const categories = await category.find({}).select("_id name");
         res.status(200).json({ status: true, message: 'Categories Received', categories });
@@ -301,10 +332,10 @@ const getCategories = async (req, res) => {
         console.error(error);
         res.status(500).json({ status: false, message: error.message });
     }
-}
+});
 
 // Get Products by Category ID
-const getProductsByCategory = async (req, res) => {
+const getProductsByCategory = asyncHandler(async (req, res) => {
     const { category_id } = req.params;
 
     try {
@@ -350,10 +381,10 @@ const getProductsByCategory = async (req, res) => {
         console.error(error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 // Get Products by Seller ID
-const getProductsBySeller = async (req, res) => {
+const getProductsBySeller = asyncHandler(async (req, res) => {
     const { seller_id } = req.params;
 
     try {
@@ -396,10 +427,10 @@ const getProductsBySeller = async (req, res) => {
         console.error(error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 
 module.exports = {
     getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts, searchProducts
-    , getProductsBySeller, getProductsByCategory
+    , getProductsBySeller, getProductsByCategory,searchProductSuggestions
 };
