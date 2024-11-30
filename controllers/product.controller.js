@@ -181,13 +181,8 @@ const searchProductSuggestions = asyncHandler(async (req, res) => {
     }
 });
 
-
-
-
 // Create Product
 const createProduct = asyncHandler(async (req, res) => {
-
-
     const { name, description, price, quantity, tags, category_id } = req.body;
     const userId = req.user.id;
 

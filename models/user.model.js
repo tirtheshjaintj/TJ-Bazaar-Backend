@@ -67,7 +67,18 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
     required: true
-  }
+  },
+    google_id: {
+      type: String,
+      validate: {
+        validator: function (v) {
+          return !v || /^\d{21}$/.test(v);
+        },
+        message: props => `Not Valid Google ID`
+      },
+      unique: true,
+      sparse: true // Allows multiple `null` values
+    }
 },{timestamps:true});
 
 // Middleware to hash password and generate OTP before saving

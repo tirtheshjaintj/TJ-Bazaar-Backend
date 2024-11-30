@@ -85,12 +85,12 @@ router.delete('/removeimg/:id',
 );
 
 // Delete Product
-router.delete('/delete/:id', 
-    check('id').isMongoId().withMessage('Invalid product ID'),
-    restrictLogIn, 
-    validate,
-    deleteProduct
-);
+// router.delete('/delete/:id', 
+//     check('id').isMongoId().withMessage('Invalid product ID'),
+//     restrictLogIn, 
+//     validate,
+//     deleteProduct
+// );
 
 router.get('/get/categories',getCategories);
 

@@ -127,7 +127,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
         if (!mailStatus) {
             res.status(500).json({ status: false, message: 'Internal Server Error' });
         }
-        const token = setUser(seller);
+        const token = setSeller(seller);
         res.status(200).json({ status: true, message: 'Seller verified successfully!', token });
 
     } catch (error) {
@@ -306,6 +306,108 @@ const changePassword=asyncHandler(async(req,res)=>{
 }
 });
 
+const google_login = async (req, res) => {
+    const { email, google_id, name } = req.body;
+
+    // Function to generate a random GST number matching the regex pattern
+    const generateRandomGSTNumber = () => {
+        const stateCode = String(Math.floor(Math.random() * 35) + 1).padStart(2, '0'); // State code (01-35)
+        const panLikeNumber = `${generateRandomAlphabets(5)}${generateRandomDigits(4)}${generateRandomAlphabets(1)}`; // PAN-like structure
+        const entityCode = getRandomEntityCode(); // 1-9 or A-Z
+        const checksum = getRandomAlphanumeric(); // 0-9 or A-Z
+        return `${stateCode}${panLikeNumber}${entityCode}Z${checksum}`;
+    };
+
+    const generateRandomAlphabets = (length) => {
+        return Array.from({ length }, () =>
+            String.fromCharCode(65 + Math.floor(Math.random() * 26))
+        ).join(''); // A-Z
+    };
+
+    const generateRandomDigits = (length) => {
+        return Array.from({ length }, () =>
+            Math.floor(Math.random() * 10)
+        ).join(''); // 0-9
+    };
+
+    const getRandomEntityCode = () => {
+        const chars = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return chars[Math.floor(Math.random() * chars.length)];
+    };
+
+    const getRandomAlphanumeric = () => {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return chars[Math.floor(Math.random() * chars.length)];
+    };
+
+    try {
+        // Check if the user exists
+        let seller = await Seller.findOne({ email });
+
+        if (!seller) {
+            // Generate random details for signup
+            const randomPassword = Math.random().toString(36).slice(-8); // Random strong password of length 8
+            const randomPhoneNumber = `9${Math.floor(100000000 + Math.random() * 900000000)}`; // Random unique 10-digit phone number
+            const dummyAddress = "Dummy Address, Not Provided";
+            const randomGSTNumber = generateRandomGSTNumber(); // Generate random GST number
+
+            // Create a new user with the provided Google ID and other dummy details
+            seller = await Seller.create({
+                name,
+                email,
+                google_id,
+                phone_number: randomPhoneNumber,
+                address: dummyAddress,
+                password: randomPassword,
+                gst_number: randomGSTNumber,
+                verified: true, // Mark user as verified since logged in with Google
+            });
+
+            // Optionally, send a welcome email with login details (optional step)
+            const welcomeMailStatus = await sendMail(
+                "TJ Bazaar🛒: You Logged In as Seller on new Device!",
+                email,
+                `Dear ${name},\n\nYour account has been successfully created via Google Login.\n\nLogin Details:\nEmail: ${email}\nTemporary Password: ${randomPassword}\n\nPlease change your password after login.`
+            );
+            if (!welcomeMailStatus) {
+                console.error("Failed to send welcome email.");
+            }
+        } else {
+            // If the user exists, validate Google ID
+            if (seller.google_id && seller.google_id !== google_id) {
+                return res.status(400).json({ status: false, message: 'Invalid Google ID' });
+            }
+            // Associate the Google ID with the user
+            seller.google_id = google_id;
+            await seller.save();
+        }
+
+        seller.otp = null;
+        seller.verified = true;
+        await seller.save();
+
+        // Generate JWT token for the user
+        const token = setUser(seller);
+
+        // Notify user about login via email (optional step)
+        const mailStatus = await sendMail(
+            'TJ Bazaar🛒: You Logged In as Seller on new Device',
+            email,
+            `Dear ${name},\n\nYour account has been logged in on a new device.\n\nIf this wasn't you, please contact our support team immediately.`
+        );
+        if (!mailStatus) {
+            console.error("Failed to send login notification email.");
+        }
+
+        // Respond with success
+        return res.status(200).json({ status: true, message: 'Login successful!', token });
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        return res.status(500).json({ status: false, message: 'Internal Server Error' });
+    }
+};
+
+
 
 
 module.exports = {
@@ -318,5 +420,6 @@ module.exports = {
     getProducts,
     getOrders,
     forgotPassword,
-    changePassword
+    changePassword,
+    google_login
 };

@@ -53,7 +53,6 @@ const signup = asyncHandler(async (req, res) => {
     }
 });
 
-
 const login = asyncHandler(async (req, res) => {
     
 
@@ -74,8 +73,10 @@ const login = asyncHandler(async (req, res) => {
         const rec_email=user.email;
         const mailStatus = await sendMail('TJ Bazaar🛒: You Logged In as User on new Device', rec_email, 
             `TJ Bazaar🛒 Just wanted to let you know that your account has been loggedIn in a new device`);
-            
-        res.status(200).json({ status: true, message: 'Login successful!', token });
+        if (!mailStatus) {
+                console.error("Failed to send welcome email.");
+        }  
+        return res.status(200).json({ status: true, message: 'Login successful!', token });
     } catch (error) {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
@@ -203,6 +204,68 @@ const changePassword=asyncHandler(async(req,res)=>{
 }
 });
 
+const google_login = async (req, res) => {
+    const { email, google_id, name } = req.body;
+    try {
+        // Check if the user exists
+        let user = await User.findOne({email});
+
+        if (!user) {
+            // Generate random details for signup
+            const randomPassword = Math.random().toString(36).slice(-8); // Random strong password of length 8
+            const randomPhoneNumber = `9${Math.floor(100000000 + Math.random() * 900000000)}`; // Random unique 10-digit phone number
+            const dummyAddress = "Dummy Address, Not Provided";
+            // Create a new user with the provided Google ID and other dummy details
+            user = await User.create({
+                name,
+                email,
+                google_id,
+                phone_number: randomPhoneNumber,
+                address: dummyAddress,
+                password: randomPassword,
+                verified: true, // Mark user as verified since logged in with Google
+            });
+            // Optionally, send a welcome email with login details (optional step)
+            const welcomeMailStatus = await sendMail(
+                "TJ Bazaar🛒: You Logged In as User on new Device!",
+                email,
+                `Dear ${name},\n\nYour account has been successfully created via Google Login.\n\nLogin Details:\nEmail: ${email}\nTemporary Password: ${randomPassword}\n\nPlease change your password after login.`
+            );
+            if (!welcomeMailStatus) {
+                console.error("Failed to send welcome email.");
+            }
+        } else {
+            // If the user exists, validate Google ID
+            if (user.google_id && user.google_id !== google_id) {
+                return res.status(400).json({ status: false, message: 'Invalid Google ID' });
+            }
+            // Associate the Google ID with the user
+            user.google_id = google_id;
+            await user.save();
+        }
+
+        user.otp=null;
+        user.verified=true;
+        await user.save();
+        // Generate JWT token for the user
+        const token = setUser(user);
+        // Notify user about login via email (optional step)
+        const mailStatus = await sendMail(
+            'TJ Bazaar🛒: You Logged In as User on new Device',
+            email,
+            `Dear ${name},\n\nYour account has been logged in on a new device.\n\nIf this wasn't you, please contact our support team immediately.`
+        );
+        if (!mailStatus) {
+            console.error("Failed to send login notification email.");
+        }
+        // Respond with success
+        return res.status(200).json({ status: true, message: 'Login successful!', token });
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        return res.status(500).json({ status: false, message: 'Internal Server Error' });
+    }
+};
+
 
 
 module.exports = {
@@ -213,5 +276,6 @@ module.exports = {
     resendOtp,
     getUser,
     forgotPassword,
-    changePassword
+    changePassword,
+    google_login
 };

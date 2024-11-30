@@ -85,6 +85,17 @@ const sellerSchema = new mongoose.Schema({
     type: Boolean,
     default: false, // Default to false for unverified
     required: true
+  },
+  google_id: {
+    type: String,
+    validate: {
+      validator: function (v) {
+        return !v || /^\d{21}$/.test(v);
+      },
+      message: props => `Not Valid Google ID`
+    },
+    unique: true,
+    sparse: true // Allows multiple `null` values
   }
 }, { timestamps: true });
 
