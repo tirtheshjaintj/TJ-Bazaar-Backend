@@ -306,7 +306,7 @@ const changePassword=asyncHandler(async(req,res)=>{
 }
 });
 
-const google_login = async (req, res) => {
+const google_login = asyncHandler(async (req, res) => {
     const { email, google_id, name } = req.body;
 
     // Function to generate a random GST number matching the regex pattern
@@ -405,7 +405,7 @@ const google_login = async (req, res) => {
         console.error("Google Login Error:", error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
-};
+});
 
 
 
