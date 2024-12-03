@@ -51,7 +51,6 @@ const productSchema = new mongoose.Schema({
     validate: [
       {
         validator: function (v) {
-          // Ensure quantity is a positive integer
           return Number.isInteger(v) && v >= 0;
         },
         message: props => `Quantity must be a positive integer.`

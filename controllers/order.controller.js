@@ -92,33 +92,36 @@ const verifyOrderController = asyncHandler(async (req, res) => {
             payment.paymentStatus = true;
             await payment.save();
 
-            // Update the order status to paid
+            // Fetch the order
             const order = await Order.findById(payment.order_id);
             if (!order) {
                 return res.status(404).json({ status: false, message: 'Order not found' });
             }
 
-            // Find the product and reduce quantity
+            // Find the product and validate stock again
             const product = await Product.findById(order.product_id);
             if (!product) {
                 return res.status(404).json({ status: false, message: 'Product not found' });
             }
-            // Reduce the product quantity
             if (product.quantity < order.quantity) {
                 return res.status(400).json({ status: false, message: 'Not enough stock to fulfill the order' });
             }
 
+            // Reduce the product quantity
             product.quantity -= order.quantity;
             await product.save();
 
+            // Update the order status to paid
             order.order_status = true;
             await order.save();
-            
-            //Remove that Quantity of product From Cart 
-            const cartItem = await Cart.findOneAndDelete({user_id:order.user_id,product_id:order.product_id,quantity:order.quantity});
 
-            res.status(200).json({ status: true, message: 'Payment verified, product quantity updated, and order status updated successfully' });
+            // Remove the product from the cart
+            await Cart.findOneAndDelete({ user_id: order.user_id, product_id: order.product_id });
 
+            res.status(200).json({
+                status: true,
+                message: 'Payment verified, product quantity updated, and order status updated successfully',
+            });
         } else {
             res.status(400).json({ status: false, message: 'Payment verification failed' });
         }
@@ -126,6 +129,74 @@ const verifyOrderController = asyncHandler(async (req, res) => {
         res.status(500).json({ status: false, message: error.message });
     }
 });
+
+
+// const verifyOrderController = asyncHandler(async (req, res) => {
+//     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+//     try {
+//         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+//             return res.status(400).json({ status: false, message: 'Order ID, Payment ID, and Signature are required' });
+//         }
+
+//         // Find the payment record
+//         const payment = await Payment.findOne({ razorpay_order_id });
+//         if (!payment) {
+//             return res.status(404).json({ status: false, message: 'Payment record not found' });
+//         }
+
+//         // Validate the payment signature
+//         const secret = process.env.RAZORPAY_API_SECRET;
+
+//         if (!secret) {
+//             return res.status(500).json({ status: false, message: 'Razorpay secret not found' });
+//         }
+
+//         const isValid = verifyPayment(
+//             razorpay_order_id,
+//             razorpay_payment_id,
+//             razorpay_signature,
+//             secret
+//         );
+
+//         if (isValid) {
+//             // Update the payment status
+//             payment.paymentStatus = true;
+//             await payment.save();
+
+//             // Update the order status to paid
+//             const order = await Order.findById(payment.order_id);
+//             if (!order) {
+//                 return res.status(404).json({ status: false, message: 'Order not found' });
+//             }
+
+//             // Find the product and reduce quantity
+//             const product = await Product.findById(order.product_id);
+//             if (!product) {
+//                 return res.status(404).json({ status: false, message: 'Product not found' });
+//             }
+//             // Reduce the product quantity
+//             if (product.quantity < order.quantity) {
+//                 return res.status(400).json({ status: false, message: 'Not enough stock to fulfill the order' });
+//             }
+
+//             product.quantity -= order.quantity;
+//             await product.save();
+
+//             order.order_status = true;
+//             await order.save();
+            
+//             //Remove that Quantity of product From Cart 
+//             const cartItem = await Cart.findOneAndDelete({user_id:order.user_id,product_id:order.product_id,quantity:order.quantity});
+
+//             res.status(200).json({ status: true, message: 'Payment verified, product quantity updated, and order status updated successfully' });
+
+//         } else {
+//             res.status(400).json({ status: false, message: 'Payment verification failed' });
+//         }
+//     } catch (error) {
+//         res.status(500).json({ status: false, message: error.message });
+//     }
+// });
 
 const getOrders = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
