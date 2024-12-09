@@ -8,8 +8,10 @@ const Media = require('../models/media.model.js');
 const Cart = require('../models/cart.model.js');
 
 const createOrderController = asyncHandler(async (req, res) => {
+
     const user_id = req.user.id;
     const { product_id, quantity } = req.body;
+
     try {
         // Validate input
         if (!product_id || !quantity) {
@@ -60,22 +62,22 @@ const createOrderController = asyncHandler(async (req, res) => {
     }
 });
 
+const mongoose = require('mongoose'); // For transactions
+
 const verifyOrderController = asyncHandler(async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
     try {
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             return res.status(400).json({ status: false, message: 'Order ID, Payment ID, and Signature are required' });
         }
 
-        // Find the payment record
         const payment = await Payment.findOne({ razorpay_order_id });
         if (!payment) {
             return res.status(404).json({ status: false, message: 'Payment record not found' });
         }
 
-        // Validate the payment signature
         const secret = process.env.RAZORPAY_API_SECRET;
-
         if (!secret) {
             return res.status(500).json({ status: false, message: 'Razorpay secret not found' });
         }
@@ -87,43 +89,54 @@ const verifyOrderController = asyncHandler(async (req, res) => {
             secret
         );
 
-        if (isValid) {
-            // Update the payment status
+        if (!isValid) {
+            return res.status(400).json({ status: false, message: 'Payment verification failed' });
+        }
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            // Update payment status
             payment.paymentStatus = true;
-            await payment.save();
+            await payment.save({ session });
 
-            // Fetch the order
-            const order = await Order.findById(payment.order_id);
+            const order = await Order.findById(payment.order_id).session(session);
             if (!order) {
-                return res.status(404).json({ status: false, message: 'Order not found' });
+                throw new Error('Order not found');
             }
 
-            // Find the product and validate stock again
-            const product = await Product.findById(order.product_id);
+            const product = await Product.findById(order.product_id).session(session);
             if (!product) {
-                return res.status(404).json({ status: false, message: 'Product not found' });
+                throw new Error('Product not found');
             }
+
             if (product.quantity < order.quantity) {
-                return res.status(400).json({ status: false, message: 'Not enough stock to fulfill the order' });
+                throw new Error('Not enough stock to fulfill the order');
             }
 
-            // Reduce the product quantity
+            // Reduce product quantity and save
             product.quantity -= order.quantity;
-            await product.save();
+            await product.save({ session });
 
-            // Update the order status to paid
+            // Update order status
             order.order_status = true;
-            await order.save();
+            await order.save({ session });
 
-            // Remove the product from the cart
-            await Cart.findOneAndDelete({ user_id: order.user_id, product_id: order.product_id });
+            // Remove from cart
+            await Cart.findOneAndDelete({ user_id: order.user_id, product_id: order.product_id }).session(session);
+
+            await session.commitTransaction();
+            session.endSession();
 
             res.status(200).json({
                 status: true,
                 message: 'Payment verified, product quantity updated, and order status updated successfully',
             });
-        } else {
-            res.status(400).json({ status: false, message: 'Payment verification failed' });
+        } catch (err) {
+            await session.abortTransaction();
+            session.endSession();
+            throw err;
         }
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
@@ -131,72 +144,6 @@ const verifyOrderController = asyncHandler(async (req, res) => {
 });
 
 
-// const verifyOrderController = asyncHandler(async (req, res) => {
-//     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-//     try {
-//         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-//             return res.status(400).json({ status: false, message: 'Order ID, Payment ID, and Signature are required' });
-//         }
-
-//         // Find the payment record
-//         const payment = await Payment.findOne({ razorpay_order_id });
-//         if (!payment) {
-//             return res.status(404).json({ status: false, message: 'Payment record not found' });
-//         }
-
-//         // Validate the payment signature
-//         const secret = process.env.RAZORPAY_API_SECRET;
-
-//         if (!secret) {
-//             return res.status(500).json({ status: false, message: 'Razorpay secret not found' });
-//         }
-
-//         const isValid = verifyPayment(
-//             razorpay_order_id,
-//             razorpay_payment_id,
-//             razorpay_signature,
-//             secret
-//         );
-
-//         if (isValid) {
-//             // Update the payment status
-//             payment.paymentStatus = true;
-//             await payment.save();
-
-//             // Update the order status to paid
-//             const order = await Order.findById(payment.order_id);
-//             if (!order) {
-//                 return res.status(404).json({ status: false, message: 'Order not found' });
-//             }
-
-//             // Find the product and reduce quantity
-//             const product = await Product.findById(order.product_id);
-//             if (!product) {
-//                 return res.status(404).json({ status: false, message: 'Product not found' });
-//             }
-//             // Reduce the product quantity
-//             if (product.quantity < order.quantity) {
-//                 return res.status(400).json({ status: false, message: 'Not enough stock to fulfill the order' });
-//             }
-
-//             product.quantity -= order.quantity;
-//             await product.save();
-
-//             order.order_status = true;
-//             await order.save();
-            
-//             //Remove that Quantity of product From Cart 
-//             const cartItem = await Cart.findOneAndDelete({user_id:order.user_id,product_id:order.product_id,quantity:order.quantity});
-
-//             res.status(200).json({ status: true, message: 'Payment verified, product quantity updated, and order status updated successfully' });
-
-//         } else {
-//             res.status(400).json({ status: false, message: 'Payment verification failed' });
-//         }
-//     } catch (error) {
-//         res.status(500).json({ status: false, message: error.message });
-//     }
-// });
 
 const getOrders = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
@@ -210,27 +157,27 @@ const getOrders = asyncHandler(async (req, res) => {
 
         // Fetch orders with populated product details and payment records
         const orders = await Order.find({ user_id })
-        .populate({
-            path: 'product_id',
-            select: '-description' 
-        });
+            .populate({
+                path: 'product_id',
+                select: '-description'
+            });
 
         // Map through orders to include required details
         const orderDetails = await Promise.all(orders.map(async (order) => {
             const product = order.product_id;
             const payment = await Payment.findOne({ order_id: order._id }); // Get payment details for the order
-            const media = await Media.findOne({product_id: product._id});
-            const image=media?.images[0];
+            const media = await Media.findOne({ product_id: product._id });
+            const image = media?.images[0];
             return {
                 order_id: order._id,
                 quantity: order.quantity,
-                createdAt:order.createdAt,
+                createdAt: order.createdAt,
                 order_status: order.order_status,
                 amount: payment ? payment.amount : 0,
                 product: {
-                    id:product._id,
+                    id: product._id,
                     name: product.name,
-                    price: payment.amount/order.quantity,
+                    price: payment.amount / order.quantity,
                     image
                 },
             };
@@ -245,4 +192,4 @@ const getOrders = asyncHandler(async (req, res) => {
 
 
 
-module.exports = { createOrderController, verifyOrderController,getOrders};
+module.exports = { createOrderController, verifyOrderController, getOrders };
