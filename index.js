@@ -51,6 +51,6 @@ app.use("/api/order", order);
 app.use("/api/cart", cart);
 app.use("/api/wishlist", wishlist);
 app.use("/api/review", review);
-app.use("/api/groq", groq);
+// app.use("/api/groq", groq);
 //Main Instance of server
 app.listen(process.env.PORT, () => console.log(`Server Started at ${process.env.PORT}`));
