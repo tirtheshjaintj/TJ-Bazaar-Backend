@@ -19,7 +19,7 @@ const connectDB = async () => {
 // Catch unhandled promise rejections (global error handling for async)
 process.on('unhandledRejection', (error) => {
   console.error(`Unhandled Rejection: ${error.message}`);
-  process.exit(1); 
+  process.exit(1);
 });
 
 module.exports = connectDB;
