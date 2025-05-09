@@ -11,12 +11,15 @@ const getProduct = asyncHandler(async (req, res) => {
     try {
         // Fetch the product by ID and populate category and seller details
         const product = await Product.findById(req.params.id)
-            .populate('category_id')  // Populating category details
+            .populate({
+                path: 'category_id',
+                select: 'name _id'
+            })
             .populate({
                 path: 'seller_id',
-                select: 'name _id' // Select only name and _id
+                select: 'name _id'
             })
-            .lean();// Convert MongoDB documents to plain JS objects
+            .lean();
 
         if (!product) {
             return res.status(404).json({ status: false, message: 'Product not found' });
@@ -45,7 +48,14 @@ const getProducts = asyncHandler(async (req, res) => {
     try {
         // Fetch all products and populate category and seller details
         const products = await Product.find({})
-            .populate('category_id')  // Populating category details
+            .populate({
+                path: 'category_id',
+                select: 'name _id'
+            })
+            .populate({
+                path: 'seller_id',
+                select: 'name _id'
+            })
             .lean();                  // Convert MongoDB documents to plain JS objects
 
         // Fetch all media associated with these products
@@ -111,8 +121,8 @@ const searchProducts = asyncHandler(async (req, res) => {
                 { tags: { $regex: kw, $options: 'i' } },        // Case-insensitive match in tags
             ]))
         })
-        .populate('category_id') // Populate category details
-        .lean();
+            .populate('category_id') // Populate category details
+            .lean();
 
         // Fetch all media associated with these products
         const productIds = products.map(product => product._id);
@@ -165,9 +175,9 @@ const searchProductSuggestions = asyncHandler(async (req, res) => {
                 { tags: { $regex: kw, $options: 'i' } },
             ]))
         })
-        .limit(5) // Limit results to top 5
-        .select('name _id') // Select only the title and product_id
-        .lean();
+            .limit(5) // Limit results to top 5
+            .select('name _id') // Select only the title and product_id
+            .lean();
 
         return res.status(200).json({
             status: true,
@@ -187,15 +197,13 @@ const createProduct = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
     try {
+
         const seller = await Seller.findById(userId);
-        if (!seller) {
-            return res.status(401).json({ status: false, message: "Seller not found" });
-        }
+        if (!seller) return res.status(401).json({ status: false, message: "Seller not found" });
 
         const category = await Category.findById(category_id);
-        if (!category) {
-            return res.status(401).json({ status: false, message: "Category not found" });
-        }
+        if (!category) return res.status(401).json({ status: false, message: "Category not found" });
+
 
         const product = new Product({
             name,
@@ -427,5 +435,5 @@ const getProductsBySeller = asyncHandler(async (req, res) => {
 
 module.exports = {
     getProduct, createProduct, updateProduct, deleteProduct, getCategories, removeImage, getProducts, searchProducts
-    , getProductsBySeller, getProductsByCategory,searchProductSuggestions
+    , getProductsBySeller, getProductsByCategory, searchProductSuggestions
 };

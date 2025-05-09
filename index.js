@@ -1,7 +1,9 @@
-const express = require('express');
-const app = express();
 //Using ENV Here
 require('dotenv').config();
+
+const express = require('express');
+const app = express();
+
 
 const test = require("./routes/test.route");
 const user = require("./routes/user.route");
@@ -15,6 +17,7 @@ const groq = require("./routes/groq.route");
 const connectDB = require('./helpers/db.helper');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+
 //MiddleWaress
 const allowedOrigins = [
   'https://tjbazaar.netlify.app',
@@ -23,7 +26,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin, like mobile apps or curl requests
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {

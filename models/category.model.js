@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
-const categorySchema=new mongoose.Schema({
-name:{
-    type:String,
+const categorySchema = new mongoose.Schema({
+  name: {
+    type: String,
     required: [true, 'Name is required'],
     unique: true,
     validate: {
@@ -12,8 +12,8 @@ name:{
       },
       message: props => `${props.value} is not a valid name! Only letters and spaces are allowed.`
     }
-}
-},{timestamps:true});
+  }
+}, { timestamps: true });
 
-const category=mongoose.model('category',categorySchema);
-module.exports=category;
+const category = mongoose.model('category', categorySchema);
+module.exports = category;
