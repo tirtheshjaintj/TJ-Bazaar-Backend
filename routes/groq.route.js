@@ -1,6 +1,6 @@
 // File: tj-bazaar-chatbot.js
 const { Router } = require('express');
-const { check, validationResult } = require('express-validator');
+const { check } = require('express-validator');
 const { validate } = require("../middlewares/validate");
 const { chat } = require('../controllers/groq.controller');
 
