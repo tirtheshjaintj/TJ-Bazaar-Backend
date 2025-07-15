@@ -234,7 +234,7 @@ const getOrders = asyncHandler(async (req, res) => {
             });
 
         if (orders.length === 0) {
-            return res.status(404).json({ status: false, message: 'No orders found for this seller\'s products' });
+            return res.status(404).json({ status: false, message: 'No orders found for this seller\'s products', data: [] });
         }
 
         // Map through orders to include required details
