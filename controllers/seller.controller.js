@@ -219,7 +219,7 @@ const getOrders = asyncHandler(async (req, res) => {
         const productIds = products.map(product => product._id);
 
         if (productIds.length === 0) {
-            return res.status(404).json({ status: false, message: 'No products found for this seller' });
+            return res.status(200).json({ status: true, message: 'No products found for this seller' });
         }
 
         // Fetch orders related to any of the seller's products
