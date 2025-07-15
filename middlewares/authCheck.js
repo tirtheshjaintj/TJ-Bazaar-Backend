@@ -8,7 +8,7 @@ async function restrictLogIn(req, res, next) {
             token = token.substring(7); // Remove 'Bearer ' prefix
         }
         // console.log('Authorization token:', token);
-        const user = getUser(token);    
+        const user = getUser(token);
         // console.log(user);    
         if (!user) {
             return res.status(401).json({ status: false, message: "Invalid Login Details" });
@@ -16,7 +16,7 @@ async function restrictLogIn(req, res, next) {
         req.user = user;
         next();
     } catch (error) {
-        console.error('Error in restrictLogIn:', error);        
+        console.error('Error in restrictLogIn:', error);
         return res.status(401).json({ status: false, message: "Wrong Details" });
     }
 }

@@ -7,7 +7,21 @@ const Product = require('../models/product.model');
 const Media = require('../models/media.model');
 const Order = require('../models/order.model');
 const Payment = require('../models/payment.model');
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+async function verifyGoogleToken(token) {
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload(); // Safe, verified info
+        return payload; // Contains email, name, sub, etc.
+    } catch (error) {
+        throw new Error("Not valid Google Login");
+    }
+}
 // Signup
 const signup = asyncHandler(async (req, res) => {
     const { name, email, phone_number, address, gst_number, password } = req.body;
@@ -77,7 +91,8 @@ const login = asyncHandler(async (req, res) => {
         const rec_email = seller.email;
         await sendMail('TJ Bazaar🛒: Logged In as Seller On new Device', rec_email,
             `TJ Bazaar🛒 Just wanted to let you know that your account has been loggedIn in a new device`);
-        res.status(200).json({ status: true, message: 'Login successful!', token });
+        seller.password = null;
+        res.status(200).json({ status: true, message: 'Login successful!', token, user: seller });
     } catch (error) {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
@@ -86,7 +101,7 @@ const login = asyncHandler(async (req, res) => {
 
 // Update Seller Details
 const updateSeller = asyncHandler(async (req, res) => {
-   
+
 
     const { name, phone_number, address, gst_number } = req.body;
 
@@ -110,7 +125,7 @@ const updateSeller = asyncHandler(async (req, res) => {
 
 // Verify OTP
 const verifyOtp = asyncHandler(async (req, res) => {
-   
+
 
     const { otp } = req.body;
     const { sellerid } = req.params;
@@ -127,8 +142,9 @@ const verifyOtp = asyncHandler(async (req, res) => {
         if (!mailStatus) {
             res.status(500).json({ status: false, message: 'Internal Server Error' });
         }
-        const token = setSeller(seller);
-        res.status(200).json({ status: true, message: 'Seller verified successfully!', token });
+        const token = setUser(seller);
+        seller.password = null;
+        res.status(200).json({ status: true, message: 'Seller verified successfully!', token, user: seller });
 
     } catch (error) {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
@@ -138,7 +154,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 // Resend OTP
 const resendOtp = asyncHandler(async (req, res) => {
     const { sellerid } = req.params;
-   
+
     try {
         const seller = await Seller.findOne({ _id: sellerid, verified: false });
         if (!seller) {
@@ -162,7 +178,7 @@ const resendOtp = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-   
+
 
     try {
         const seller_id = req.user.id;
@@ -207,7 +223,7 @@ const getOrders = asyncHandler(async (req, res) => {
         }
 
         // Fetch orders related to any of the seller's products
-        const orders = await Order.find({ product_id: { $in: productIds },order_status:true})
+        const orders = await Order.find({ product_id: { $in: productIds }, order_status: true })
             .populate({
                 path: 'product_id',
                 select: 'name price' // Only get required product fields
@@ -257,11 +273,11 @@ const getOrders = asyncHandler(async (req, res) => {
 
 const getSeller = asyncHandler(async (req, res) => {
     try {
-        
+
         const sellerId = req.user.id;
         const seller = await Seller.findById(sellerId).select("-password -otp -__v -verified");;
         if (!seller) return res.status(500).json({ status: false, message: 'Seller Not Found' });
-        return res.status(200).json({ status: true,message:"Seller Found",data:seller });
+        return res.status(200).json({ status: true, message: "Seller Found", data: seller });
     } catch (error) {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
@@ -270,44 +286,46 @@ const getSeller = asyncHandler(async (req, res) => {
 
 const forgotPassword = asyncHandler(async (req, res) => {
     try {
-    const { email } = req.body;
-    const seller = await Seller.findOne({ email, verified: true });
-    if (!seller) return res.status(404).json({ status: false, message: 'No Account Exists' });
+        const { email } = req.body;
+        const seller = await Seller.findOne({ email, verified: true });
+        if (!seller) return res.status(404).json({ status: false, message: 'No Account Exists' });
 
-    const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
-    seller.otp = otp; // Save OTP in the user document
-    await seller.save();
+        const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
+        seller.otp = otp; // Save OTP in the user document
+        await seller.save();
 
-    const mailStatus = await sendMail('TJ Bazaar🛒: Your OTP Code to Reset Password', seller.email, `Your OTP code to Reset Password is ${otp}`);
+        const mailStatus = await sendMail('TJ Bazaar🛒: Your OTP Code to Reset Password', seller.email, `Your OTP code to Reset Password is ${otp}`);
 
-    if (mailStatus) {
-        res.status(200).json({ status: true, message: 'OTP Sent to your Email!' });
-    } else {
+        if (mailStatus) {
+            res.status(200).json({ status: true, message: 'OTP Sent to your Email!' });
+        } else {
+            res.status(500).json({ status: false, message: 'Failed to send OTP.' });
+        }
+    } catch (error) {
         res.status(500).json({ status: false, message: 'Failed to send OTP.' });
-    }           
-} catch (error) {
-    res.status(500).json({ status: false, message: 'Failed to send OTP.' });
-}
+    }
 });
 
-const changePassword=asyncHandler(async(req,res)=>{
+const changePassword = asyncHandler(async (req, res) => {
     try {
-    const {email,otp,password}=req.body;
-    const seller=await Seller.findOne({email,otp,verified:true});
-    if(!seller) return res.status(404).json({ status: false, message: 'OTP Not Correct' });
-    seller.password = password;
-    seller.otp=null;
-    await seller.save();
-    const mailStatus = await sendMail('TJ Bazaar🛒: Password Changed Successfully ✅', seller.email, `TJ Bazaar🛒: Password Changed Successfully ✅`);
-    return res.status(200).json({ status: true, message:"Password updated successfully"}); 
-} catch (error) {
-    console.log(error);
-    res.status(500).json({ status: false, message: 'Failed to verify OTP.' });   
-}
+        const { email, otp, password } = req.body;
+        const seller = await Seller.findOne({ email, otp, verified: true });
+        if (!seller) return res.status(404).json({ status: false, message: 'OTP Not Correct' });
+        seller.password = password;
+        seller.otp = null;
+        await seller.save();
+        const mailStatus = await sendMail('TJ Bazaar🛒: Password Changed Successfully ✅', seller.email, `TJ Bazaar🛒: Password Changed Successfully ✅`);
+        return res.status(200).json({ status: true, message: "Password updated successfully" });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ status: false, message: 'Failed to verify OTP.' });
+    }
 });
 
 const google_login = asyncHandler(async (req, res) => {
-    const { email, google_id, name } = req.body;
+    const details = await verifyGoogleToken(req.body.token);
+    const { email, name, sub: google_id } = details;
+    const sanitized_name = name.replace(/[^a-zA-Z\s]/g, "").trim();
 
     // Function to generate a random GST number matching the regex pattern
     const generateRandomGSTNumber = () => {
@@ -353,7 +371,7 @@ const google_login = asyncHandler(async (req, res) => {
 
             // Create a new user with the provided Google ID and other dummy details
             seller = await Seller.create({
-                name,
+                name: sanitized_name,
                 email,
                 google_id,
                 phone_number: randomPhoneNumber,
@@ -398,9 +416,9 @@ const google_login = asyncHandler(async (req, res) => {
         if (!mailStatus) {
             console.error("Failed to send login notification email.");
         }
-
+        seller.password = null;
         // Respond with success
-        return res.status(200).json({ status: true, message: 'Login successful!', token });
+        return res.status(200).json({ status: true, message: 'Login successful!', token, user: seller });
     } catch (error) {
         console.error("Google Login Error:", error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });

@@ -3,8 +3,6 @@ require('dotenv').config();
 
 const express = require('express');
 const app = express();
-
-
 const test = require("./routes/test.route");
 const user = require("./routes/user.route");
 const seller = require("./routes/seller.route");
@@ -54,5 +52,6 @@ app.use("/api/cart", cart);
 app.use("/api/wishlist", wishlist);
 app.use("/api/review", review);
 app.use("/api/groq", groq);
+
 //Main Instance of server
 app.listen(process.env.PORT, () => console.log(`Server Started at ${process.env.PORT}`));

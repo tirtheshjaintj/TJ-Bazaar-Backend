@@ -28,13 +28,13 @@ const productSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: [true, 'Product Description is required'],  
+    required: [true, 'Product Description is required'],
   },
-  tags:{
+  tags: {
     type: [String],
     required: [true, 'Product Tags is required']
   }
-,
+  ,
   price: {
     type: Number,
     required: [true, 'Price is required'],
@@ -58,7 +58,7 @@ const productSchema = new mongoose.Schema({
     ]
   },
 
-},{timestamps: true});
+}, { timestamps: true });
 
 // Pre-save hook to validate category and seller references
 productSchema.pre('save', async function (next) {

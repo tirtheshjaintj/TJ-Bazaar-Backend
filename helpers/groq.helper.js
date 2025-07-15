@@ -4,7 +4,6 @@ const groq = new Groq({ apiKey: groqApiKey });
 
 if (!groqApiKey) {
     console.error('Error: Missing GROQ_API_KEY in .env file');
-    return;
 }
 
 async function getGroqData(prompt) {

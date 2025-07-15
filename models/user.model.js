@@ -68,32 +68,32 @@ const userSchema = new mongoose.Schema({
     default: false,
     required: true
   },
-    google_id: {
-      type: String,
-      validate: {
-        validator: function (v) {
-          return !v || /^\d{21}$/.test(v);
-        },
-        message: props => `Not Valid Google ID`
+  google_id: {
+    type: String,
+    validate: {
+      validator: function (v) {
+        return !v || /^\d{21}$/.test(v);
       },
-      unique: true,
-      sparse: true // Allows multiple `null` values
-    }
-},{timestamps:true});
+      message: props => `Not Valid Google ID`
+    },
+    unique: true,
+    sparse: true // Allows multiple `null` values
+  }
+}, { timestamps: true });
 
 // Middleware to hash password and generate OTP before saving
 userSchema.pre('save', async function (next) {
 
-try {
+  try {
 
-if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 12);
-}
+    if (this.isModified('password')) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
 
-next();
-} catch (error) {
+    next();
+  } catch (error) {
     next(error);
-}
+  }
 
 });
 

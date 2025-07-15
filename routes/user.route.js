@@ -16,9 +16,7 @@ const { validate } = require('../middlewares/validate');
 
 const router = express.Router();
 
-
-
-router.get('/getUser',restrictLogIn,validate, getUser);
+router.get('/getUser', restrictLogIn, validate, getUser);
 
 router.post('/signup',
     [
@@ -82,10 +80,8 @@ router.post('/change-password',
     changePassword
 );
 
-router.post('/google_login',[
-    check('name').matches(/^[a-zA-Z\s]+$/).isLength({ min: 3 }).withMessage('Name must contain only letters and spaces.'),
-    check('email').isEmail().withMessage('Please enter a valid email address.'),
-    check('google_id').isLength({ min: 21,max:21 }).matches(/^\d{21}$/).withMessage('Not a valid google_id')
-],validate,google_login);
+router.post('/google_login', [
+    check("token").isJWT().withMessage("Not Valid JWT")
+], validate, google_login);
 
 module.exports = router;

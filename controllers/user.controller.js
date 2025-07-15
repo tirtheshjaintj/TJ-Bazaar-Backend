@@ -3,10 +3,25 @@ const { setUser } = require('../helpers/jwt.helper');
 const sendMail = require('../helpers/mail.helper');
 const crypto = require('crypto');
 const asyncHandler = require("express-async-handler");
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+
+async function verifyGoogleToken(token) {
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload(); // Safe, verified info
+        return payload; // Contains email, name, sub, etc.
+    } catch (error) {
+        throw new Error("Not valid Google Login");
+    }
+}
 
 const signup = asyncHandler(async (req, res) => {
-    
+
 
     const { name, email, phone_number, address, password } = req.body;
     const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
@@ -41,7 +56,7 @@ const signup = asyncHandler(async (req, res) => {
 
         const mailStatus = await sendMail('TJ Bazaar🛒: Your OTP Code', email, `Your OTP code is ${otp}`);
         if (mailStatus) {
-    // Respond with success and the created user
+            // Respond with success and the created user
             res.status(201).json({ status: true, message: 'Verification is Needed!', user });
         } else {
             res.status(500).json({ status: false, message: 'Failed to send OTP.' });
@@ -54,7 +69,7 @@ const signup = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-    
+
 
     const { email, password } = req.body;
 
@@ -70,13 +85,14 @@ const login = asyncHandler(async (req, res) => {
         }
 
         const token = setUser(user);
-        const rec_email=user.email;
-        const mailStatus = await sendMail('TJ Bazaar🛒: You Logged In as User on new Device', rec_email, 
+        const rec_email = user.email;
+        const mailStatus = await sendMail('TJ Bazaar🛒: You Logged In as User on new Device', rec_email,
             `TJ Bazaar🛒 Just wanted to let you know that your account has been loggedIn in a new device`);
         if (!mailStatus) {
-                console.error("Failed to send welcome email.");
-        }  
-        return res.status(200).json({ status: true, message: 'Login successful!', token });
+            console.error("Failed to send welcome email.");
+        }
+        user.password = null;
+        return res.status(200).json({ status: true, message: 'Login successful!', token, user });
     } catch (error) {
         console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
@@ -84,7 +100,7 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const updateUser = asyncHandler(async (req, res) => {
-    
+
 
     const { name, email, phone_number, address } = req.body;
 
@@ -108,8 +124,6 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 const verifyOtp = asyncHandler(async (req, res) => {
-    
-
     const { otp } = req.body;
     const { userid } = req.params;
 
@@ -127,7 +141,8 @@ const verifyOtp = asyncHandler(async (req, res) => {
         }
 
         const token = setUser(user);
-        res.status(200).json({ status: true, message: 'Login successful!', token });
+        user.password = null;
+        res.status(200).json({ status: true, message: 'Login successful!', token, user });
     } catch (error) {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
@@ -135,7 +150,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
 const resendOtp = asyncHandler(async (req, res) => {
     const { userid } = req.params;
-    
+
     try {
         const user = await User.findOne({ _id: userid, verified: false });
         if (!user) {
@@ -156,59 +171,63 @@ const resendOtp = asyncHandler(async (req, res) => {
     }
 });
 
-const getUser =asyncHandler(async (req, res) => {
- try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select("-password -otp -__v -verified");
-    if(!user) return res.status(500).json({ status: false, message: 'User Not Found' });
-    return res.status(200).json({ status:true,message:"User Fetched", user });
- } catch (error) {
-    res.status(500).json({ status: false, message: 'Internal Server Error' });
- }
+const getUser = asyncHandler(async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select("-password -otp -__v -verified");
+        if (!user) return res.status(500).json({ status: false, message: 'User Not Found' });
+        return res.status(200).json({ status: true, message: "User Fetched", user });
+    } catch (error) {
+        res.status(500).json({ status: false, message: 'Internal Server Error' });
+    }
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
     try {
-    const { email } = req.body;
-    const user = await User.findOne({ email, verified: true });
-    if (!user) return res.status(404).json({ status: false, message: 'No Account Exists' });
+        const { email } = req.body;
+        const user = await User.findOne({ email, verified: true });
+        if (!user) return res.status(404).json({ status: false, message: 'No Account Exists' });
 
-    const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
-    user.otp = otp; // Save OTP in the user document
-    await user.save();
+        const otp = crypto.randomInt(100000, 999999).toString(); // Generate OTP
+        user.otp = otp; // Save OTP in the user document
+        await user.save();
 
-    const mailStatus = await sendMail('TJ Bazaar🛒: Your OTP Code to Reset Password', user.email, `Your OTP code to Reset Password is ${otp}`);
+        const mailStatus = await sendMail('TJ Bazaar🛒: Your OTP Code to Reset Password', user.email, `Your OTP code to Reset Password is ${otp}`);
 
-    if (mailStatus) {
-        res.status(200).json({ status: true, message: 'OTP Sent to your Email!' });
-    } else {
+        if (mailStatus) {
+            res.status(200).json({ status: true, message: 'OTP Sent to your Email!' });
+        } else {
+            res.status(500).json({ status: false, message: 'Failed to send OTP.' });
+        }
+    } catch (error) {
         res.status(500).json({ status: false, message: 'Failed to send OTP.' });
-    }           
-} catch (error) {
-    res.status(500).json({ status: false, message: 'Failed to send OTP.' });
-}
+    }
 });
 
-const changePassword=asyncHandler(async(req,res)=>{
+const changePassword = asyncHandler(async (req, res) => {
     try {
-    const {email,otp,password}=req.body;
-    const user=await User.findOne({email,otp,verified:true});
-    if(!user) return res.status(404).json({ status: false, message: 'OTP Not Correct' });
-    user.password = password;
-    user.otp=null;
-    await user.save();
-    const mailStatus = await sendMail('TJ Bazaar🛒: Password Changed Successfully ✅', user.email, `TJ Bazaar🛒: Password Changed Successfully ✅`);
-    return res.status(200).json({ status: true, message:"Password updated successfully"}); 
-} catch (error) {
-    res.status(500).json({ status: false, message: 'Failed to send OTP.' });   
-}
+        const { email, otp, password } = req.body;
+        const user = await User.findOne({ email, otp, verified: true });
+        if (!user) return res.status(404).json({ status: false, message: 'OTP Not Correct' });
+        user.password = password;
+        user.otp = null;
+        await user.save();
+        const mailStatus = await sendMail('TJ Bazaar🛒: Password Changed Successfully ✅', user.email, `TJ Bazaar🛒: Password Changed Successfully ✅`);
+        return res.status(200).json({ status: true, message: "Password updated successfully" });
+    } catch (error) {
+        res.status(500).json({ status: false, message: 'Failed to send OTP.' });
+    }
 });
+
 
 const google_login = asyncHandler(async (req, res) => {
-    const { email, google_id, name } = req.body;
+    const details = await verifyGoogleToken(req.body.token);
+    const { email, name, sub: google_id } = details;
+    const sanitized_name = name.replace(/[^a-zA-Z\s]/g, "").trim();
+
     try {
         // Check if the user exists
-        let user = await User.findOne({email});
+        let user = await User.findOne({ email });
 
         if (!user) {
             // Generate random details for signup
@@ -217,7 +236,7 @@ const google_login = asyncHandler(async (req, res) => {
             const dummyAddress = "Dummy Address, Not Provided";
             // Create a new user with the provided Google ID and other dummy details
             user = await User.create({
-                name,
+                name: sanitized_name,
                 email,
                 google_id,
                 phone_number: randomPhoneNumber,
@@ -244,8 +263,8 @@ const google_login = asyncHandler(async (req, res) => {
             await user.save();
         }
 
-        user.otp=null;
-        user.verified=true;
+        user.otp = null;
+        user.verified = true;
         await user.save();
         // Generate JWT token for the user
         const token = setUser(user);
@@ -258,8 +277,9 @@ const google_login = asyncHandler(async (req, res) => {
         if (!mailStatus) {
             console.error("Failed to send login notification email.");
         }
+        user.password = null;
         // Respond with success
-        return res.status(200).json({ status: true, message: 'Login successful!', token });
+        return res.status(200).json({ status: true, message: 'Login successful!', token, user });
     } catch (error) {
         console.error("Google Login Error:", error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
