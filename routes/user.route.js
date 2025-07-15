@@ -81,7 +81,11 @@ router.post('/change-password',
 );
 
 router.post('/google_login', [
-    check("token").isJWT().withMessage("Not Valid JWT")
+    check("token")
+        .notEmpty()
+        .withMessage("JWT is required")
+        .isJWT()
+        .withMessage("Invalid JWT format")
 ], validate, google_login);
 
 module.exports = router;
