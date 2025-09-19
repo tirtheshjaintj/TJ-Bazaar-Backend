@@ -112,22 +112,21 @@ const searchProducts = asyncHandler(async (req, res) => {
 
         // Split the sanitized keyword into individual keywords
         const keywords = sanitizedKeyword.split(' ').filter(Boolean).map(kw => kw.trim());
-
+        console.log(keywords);
         // Perform search across multiple fields using $or for each keyword
         const products = await Product.find({
             $or: keywords.flatMap(kw => ([
-                { name: { $regex: kw, $options: 'i' } },        // Case-insensitive match in product name
-                { description: { $regex: kw, $options: 'i' } }, // Case-insensitive match in description
-                { tags: { $regex: kw, $options: 'i' } },        // Case-insensitive match in tags
+                { name: { $regex: kw, $options: 'i' } },        // Search in name
+                { description: { $regex: kw, $options: 'i' } }, // Search in description
+                { tags: { $regex: kw, $options: 'i' } },
             ]))
         })
             .populate('category_id') // Populate category details
             .lean();
-
+        console.log("search", products);
         // Fetch all media associated with these products
         const productIds = products.map(product => product._id);
         const media = await Media.find({ product_id: { $in: productIds } }).lean();
-
         // Map product IDs to their corresponding media URLs
         const mediaMap = media.reduce((acc, item) => {
             acc[item.product_id] = item.images;
@@ -139,6 +138,7 @@ const searchProducts = asyncHandler(async (req, res) => {
             ...product,
             media: mediaMap[product._id] || []  // Attach media if exists, else an empty array
         }));
+        console.log(productsWithMedia);
 
         return res.status(200).json({
             status: true,
@@ -166,7 +166,7 @@ const searchProductSuggestions = asyncHandler(async (req, res) => {
 
         // Split the sanitized keyword into individual keywords
         const keywords = sanitizedKeyword.split(' ').filter(Boolean).map(kw => kw.trim());
-
+        console.log("suggestion", keywords);
         // Perform search across multiple fields using regex for case-insensitive match
         const products = await Product.find({
             $or: keywords.flatMap(kw => ([

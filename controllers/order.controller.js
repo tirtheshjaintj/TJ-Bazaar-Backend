@@ -147,7 +147,7 @@ const verifyOrderController = asyncHandler(async (req, res) => {
 
 const getOrders = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
-
+    console.log("Get Orders", user_id);
     try {
         // Find the user
         const user = await User.findById(user_id);

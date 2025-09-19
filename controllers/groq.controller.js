@@ -1,8 +1,13 @@
+const { analyzeImageGoogle } = require("../helpers/gemini.helper");
 const getGroqData = require("../helpers/groq.helper");
 
 async function chat(req, res) {
-    let { prompt, history } = req.body;
-    prompt = `
+  let { prompt, history } = req.body;
+  let imageInput = "";
+  if (req.file) {
+    imageInput = await analyzeImageGoogle(req.file, "Describe Complete in text");
+  }
+  prompt = `
     Make sure to Keep answers as short as possible and crisp as poosible and brief and should have no bold text as it give ** and make sure currency is in INR  and it is not a shopify platform
     Please act as a friendly shopping assistant named Bazaar AI for TJ Bazaar , an e-commerce platform for both users and sellers where they can list and buy products and manage inventory,wishlist and cart made by highly expertise of full-stack developer Tirthesh Jain using MERN(MongoDB,Express,ReactJS,NodeJS). Assist customers with queries about products, orders, and offers in a professional and engaging manner. Always prioritize clarity and relevance.
     
@@ -26,17 +31,18 @@ async function chat(req, res) {
     4. Make sure to Keep answers as short as possible and crisp as poosible and brief and should have no bold text as it give ** and make sure currency is in INR
     The Chat History Till Now:
     ${history}
-
+    Attached Image:
+    ${imageInput}
     User's Current Query:
     ${prompt}`;
 
-    try {
-        const result = await getGroqData(prompt);
-        return res.status(200).send(result);
-    } catch (error) {
-        console.error('Error calling Groq AI API:', error);
-        return res.status(500).json({ status: false, message: 'An internal server error occurred.' });
-    }
+  try {
+    const result = await getGroqData(prompt);
+    return res.status(200).send(result);
+  } catch (error) {
+    console.error('Error calling Groq AI API:', error);
+    return res.status(500).json({ status: false, message: 'An internal server error occurred.' });
+  }
 }
 
 module.exports = { chat };

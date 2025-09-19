@@ -11,10 +11,11 @@ const {
     getOrders,
     changePassword,
     forgotPassword,
-    google_login
+    google_login,
+    logOut
 } = require('../controllers/seller.controller');
 
-const { restrictLogIn } = require('../middlewares/authCheck');
+const { restrictLogIn } = require('../middlewares/authCheckSeller');
 const { validate } = require('../middlewares/validate');
 const router = express.Router();
 
@@ -97,6 +98,8 @@ router.post('/change-password',
 router.post('/google_login', [
     check("token").isJWT().withMessage("Not Valid JWT")
 ], validate, google_login);
+
+router.post('/logout', logOut);
 
 
 module.exports = router;

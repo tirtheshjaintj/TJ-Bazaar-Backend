@@ -7,6 +7,7 @@ const Product = require('../models/product.model');
 const Media = require('../models/media.model');
 const Order = require('../models/order.model');
 const Payment = require('../models/payment.model');
+
 const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -92,6 +93,12 @@ const login = asyncHandler(async (req, res) => {
         await sendMail('TJ Bazaar🛒: Logged In as Seller On new Device', rec_email,
             `TJ Bazaar🛒 Just wanted to let you know that your account has been loggedIn in a new device`);
         seller.password = null;
+        res.cookie('seller_token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 1000 * 60 * 60 * 24 * 365
+        });
         res.status(200).json({ status: true, message: 'Login successful!', token, user: seller });
     } catch (error) {
         console.log(error);
@@ -101,10 +108,7 @@ const login = asyncHandler(async (req, res) => {
 
 // Update Seller Details
 const updateSeller = asyncHandler(async (req, res) => {
-
-
     const { name, phone_number, address, gst_number } = req.body;
-
     try {
         const sellerId = req.user.id;  // Assuming seller ID is extracted from a middleware
         const seller = await Seller.findByIdAndUpdate(
@@ -112,13 +116,12 @@ const updateSeller = asyncHandler(async (req, res) => {
             { name, phone_number, address, gst_number },
             { new: true, runValidators: true }
         );
-
         if (!seller) {
             return res.status(404).json({ status: false, message: 'Seller not found.' });
         }
-
         res.status(200).json({ status: true, message: 'Seller details updated successfully!', seller });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
 });
@@ -144,6 +147,12 @@ const verifyOtp = asyncHandler(async (req, res) => {
         }
         const token = setUser(seller);
         seller.password = null;
+        res.cookie('seller_token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 1000 * 60 * 60 * 24 * 365
+        });
         res.status(200).json({ status: true, message: 'Seller verified successfully!', token, user: seller });
 
     } catch (error) {
@@ -417,6 +426,12 @@ const google_login = asyncHandler(async (req, res) => {
             console.error("Failed to send login notification email.");
         }
         seller.password = null;
+        res.cookie('seller_token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 1000 * 60 * 60 * 24 * 365
+        });
         // Respond with success
         return res.status(200).json({ status: true, message: 'Login successful!', token, user: seller });
     } catch (error) {
@@ -425,7 +440,15 @@ const google_login = asyncHandler(async (req, res) => {
     }
 });
 
-
+const logOut = asyncHandler(async (req, res) => {
+    res.clearCookie('seller_token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+    });
+    res.status(200).json({ status: true, message: "Seller logged out" });
+});
 
 
 module.exports = {
@@ -439,5 +462,6 @@ module.exports = {
     getOrders,
     forgotPassword,
     changePassword,
-    google_login
+    google_login,
+    logOut
 };

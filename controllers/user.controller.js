@@ -6,7 +6,6 @@ const asyncHandler = require("express-async-handler");
 const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-
 async function verifyGoogleToken(token) {
     try {
         const ticket = await client.verifyIdToken({
@@ -19,6 +18,7 @@ async function verifyGoogleToken(token) {
         throw new Error("Not valid Google Login");
     }
 }
+
 
 const signup = asyncHandler(async (req, res) => {
 
@@ -92,6 +92,12 @@ const login = asyncHandler(async (req, res) => {
             console.error("Failed to send welcome email.");
         }
         user.password = null;
+        res.cookie('user_token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 1000 * 60 * 60 * 24 * 365
+        });
         return res.status(200).json({ status: true, message: 'Login successful!', token, user });
     } catch (error) {
         console.log(error);
@@ -119,6 +125,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
         res.status(200).json({ status: true, message: 'User details updated successfully!', user });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
 });
@@ -142,6 +149,12 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
         const token = setUser(user);
         user.password = null;
+        res.cookie('user_token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 1000 * 60 * 60 * 24 * 365
+        });
         res.status(200).json({ status: true, message: 'Login successful!', token, user });
     } catch (error) {
         res.status(500).json({ status: false, message: 'Internal Server Error' });
@@ -278,12 +291,28 @@ const google_login = asyncHandler(async (req, res) => {
             console.error("Failed to send login notification email.");
         }
         user.password = null;
+        res.cookie('user_token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 1000 * 60 * 60 * 24 * 365
+        });
         // Respond with success
         return res.status(200).json({ status: true, message: 'Login successful!', token, user });
     } catch (error) {
         console.error("Google Login Error:", error);
         return res.status(500).json({ status: false, message: 'Internal Server Error' });
     }
+});
+
+const logOut = asyncHandler(async (req, res) => {
+    res.clearCookie('user_token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+    });
+    res.status(200).json({ status: true, message: "User logged out" });
 });
 
 
@@ -297,5 +326,6 @@ module.exports = {
     getUser,
     forgotPassword,
     changePassword,
-    google_login
+    google_login,
+    logOut
 };

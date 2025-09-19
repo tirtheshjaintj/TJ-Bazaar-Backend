@@ -10,7 +10,8 @@ const {
     getUser,
     changePassword,
     forgotPassword,
-    google_login
+    google_login,
+    logOut
 } = require('../controllers/user.controller');
 const { validate } = require('../middlewares/validate');
 
@@ -87,5 +88,8 @@ router.post('/google_login', [
         .isJWT()
         .withMessage("Invalid JWT format")
 ], validate, google_login);
+
+router.post('/logout', logOut);
+
 
 module.exports = router;

@@ -7,8 +7,8 @@ async function restrictLogIn(req, res, next) {
         if (token && token.startsWith('Bearer ')) {
             token = token.substring(7); // Remove 'Bearer ' prefix
         }
-        if (req.cookies && req.cookies.user_token) {
-            token = req.cookies.user_token;
+        if (req.cookies && req.cookies.seller_token) {
+            token = req.cookies.seller_token;
             console.log("Cookie Token", token);
         }
         // console.log('Authorization token:', token);
