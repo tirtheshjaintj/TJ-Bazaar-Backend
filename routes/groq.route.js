@@ -10,7 +10,8 @@ const router = Router();
 
 router.post('/', upload.single("image"), [
     check('prompt').not().isEmpty().withMessage("Nothing in Prompt"),
-    check('history').not().isEmpty().withMessage("Nothing in History")
+    check('history').not().isEmpty().withMessage("Nothing in History"),
+    check('productId').optional().isMongoId().withMessage("Invalid Product ID"),
 ], validate, chat);
 
 module.exports = router;
